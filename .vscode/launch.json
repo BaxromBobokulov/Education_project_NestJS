@@ -8,8 +8,8 @@
       "args": [],
       "stopAtEntry": false,
       "externalConsole": true,
-      "cwd": "c:/Users/User/AppData/Local/Temp/ae484c98-acdf-4c66-963b-9e2d07b4106a_exe.zip.06a/exe",
-      "program": "c:/Users/User/AppData/Local/Temp/ae484c98-acdf-4c66-963b-9e2d07b4106a_exe.zip.06a/exe/build/Debug/outDebug",
+      "cwd": "c:/Users/User/OneDrive/Desktop/Project_Nest",
+      "program": "c:/Users/User/OneDrive/Desktop/Project_Nest/build/Debug/outDebug",
       "MIMode": "gdb",
       "miDebuggerPath": "gdb",
       "setupCommands": [
