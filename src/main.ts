@@ -7,6 +7,7 @@ async function bootstrap() {
 
   const config  = new DocumentBuilder()
   .setTitle("Education project NestJS")
+  .addBearerAuth()
   .build()
 
   const documentFactory = () => SwaggerModule.createDocument(app,config)

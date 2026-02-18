@@ -1,10 +1,14 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseInterceptors, UploadedFile } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseInterceptors, UploadedFile, UseGuards } from '@nestjs/common';
 import { TeachersService } from './teachers.service';
 import { CreateTeacherDto } from './dto/create-teacher.dto';
 import { UpdateTeacherDto } from './dto/update-teacher.dto';
-import { ApiBody, ApiConsumes } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiBody, ApiConsumes, ApiOperation } from '@nestjs/swagger';
 import { diskStorage } from 'multer';
 import { FileInterceptor } from '@nestjs/platform-express';
+import { Role } from '@prisma/client';
+import { AuthGuard } from 'src/common/guards/jwt.guard';
+import { RolesGuard } from 'src/common/guards/role.guard';
+import { Roles } from 'src/common/decorators/role.decorator';
 
 @Controller('teachers')
 export class TeachersController {
@@ -36,6 +40,12 @@ export class TeachersController {
     })
   }))
 
+  @ApiOperation({
+    summary: `${Role.SUPERADMIN}, ${Role.ADMIN}`
+  })
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles(Role.SUPERADMIN, Role.ADMIN)
+  @ApiBearerAuth()
   @Post()
   async create(@Body() body: CreateTeacherDto,
     @UploadedFile() file: Express.Multer.File) {
@@ -45,16 +55,34 @@ export class TeachersController {
     }
   }
 
+  @ApiOperation({
+    summary: `${Role.SUPERADMIN}, ${Role.ADMIN}`
+  })
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles(Role.SUPERADMIN, Role.ADMIN)
+  @ApiBearerAuth()
   @Get("all")
   findAll() {
     return this.teachersService.findAll();
   }
 
+  @ApiOperation({
+    summary: `${Role.SUPERADMIN}, ${Role.ADMIN} , ${Role.TEACHER}`
+  })
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles(Role.SUPERADMIN, Role.ADMIN, Role.TEACHER)
+  @ApiBearerAuth()
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.teachersService.findOne(+id);
   }
 
+  @ApiOperation({
+    summary: `${Role.SUPERADMIN}, ${Role.ADMIN} , ${Role.TEACHER}`
+  })
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles(Role.SUPERADMIN, Role.ADMIN, Role.TEACHER)
+  @ApiBearerAuth()
   @Patch(':id')
   @UseInterceptors(FileInterceptor('photo', {
     storage: diskStorage({
@@ -76,7 +104,12 @@ export class TeachersController {
     }
   }
 
-
+  @ApiOperation({
+    summary: `${Role.SUPERADMIN}, ${Role.ADMIN}`
+  })
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles(Role.SUPERADMIN, Role.ADMIN)
+  @ApiBearerAuth()
   @Delete(':id')
   remove(@Param('id') id: string) {
     const removedAdmin = this.teachersService.remove(+id);

@@ -1,10 +1,14 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseInterceptors, UploadedFile } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseInterceptors, UploadedFile, UseGuards } from '@nestjs/common';
 import { StudentsService } from './students.service';
 import { CreateStudentDto } from './dto/create-student.dto';
 import { UpdateStudentDto } from './dto/update-student.dto';
-import { ApiBody, ApiConsumes } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiBody, ApiConsumes, ApiOperation } from '@nestjs/swagger';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
+import { Role } from '@prisma/client';
+import { AuthGuard } from 'src/common/guards/jwt.guard';
+import { RolesGuard } from 'src/common/guards/role.guard';
+import { Roles } from 'src/common/decorators/role.decorator';
 
 @Controller('students')
 export class StudentsController {
@@ -36,6 +40,12 @@ export class StudentsController {
     })
   }))
 
+  @ApiOperation({
+    summary: `${Role.SUPERADMIN}, ${Role.ADMIN}`
+  })
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles(Role.SUPERADMIN, Role.ADMIN)
+  @ApiBearerAuth()
   @Post()
   async create(
     @Body() createStudentDto: CreateStudentDto,
@@ -46,16 +56,35 @@ export class StudentsController {
     }
   }
 
+
+  @ApiOperation({
+    summary: `${Role.SUPERADMIN}, ${Role.ADMIN}`
+  })
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles(Role.SUPERADMIN, Role.ADMIN)
+  @ApiBearerAuth()
   @Get("all")
   findAll() {
     return this.studentsService.findAll();
   }
 
+  @ApiOperation({
+    summary: `${Role.SUPERADMIN}, ${Role.ADMIN}, ${Role.STUDENT}`
+  })
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles(Role.SUPERADMIN, Role.ADMIN, Role.STUDENT)
+  @ApiBearerAuth()
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.studentsService.findOne(+id);
   }
 
+  @ApiOperation({
+    summary: `${Role.SUPERADMIN}, ${Role.ADMIN}, ${Role.STUDENT}`
+  })
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles(Role.SUPERADMIN, Role.ADMIN, Role.STUDENT)
+  @ApiBearerAuth()
   @Patch(':id')
   @UseInterceptors(FileInterceptor('photo', {
     storage: diskStorage({
@@ -77,6 +106,12 @@ export class StudentsController {
     }
   }
 
+  @ApiOperation({
+    summary: `${Role.SUPERADMIN}, ${Role.ADMIN}`
+  })
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles(Role.SUPERADMIN, Role.ADMIN)
+  @ApiBearerAuth()
   @Delete(':id')
   remove(@Param('id') id: string) {
     const removedStudent = this.studentsService.remove(+id);

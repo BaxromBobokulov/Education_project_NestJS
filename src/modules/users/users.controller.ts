@@ -1,19 +1,25 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseInterceptors, UploadedFile } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseInterceptors, UploadedFile, UseGuards } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
-import { ApiBody, ApiConsumes } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiBody, ApiConsumes, ApiOperation } from '@nestjs/swagger';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
+import { AuthGuard } from 'src/common/guards/jwt.guard';
+import { RolesGuard } from 'src/common/guards/role.guard';
+import { Roles } from 'src/common/decorators/role.decorator';
+import { Role } from '@prisma/client';
 
 
 @Controller('admin')
 export class UsersController {
   constructor(private readonly usersService: UsersService) { }
-  @ApiConsumes("multipart/form-data")
+
+
+  @ApiConsumes("multipart/form-data") 
   @ApiBody({
     schema: {
-      type: 'object', 
+      type: 'object',
       properties: {
         first_name: { type: "string", example: "Mahmud" },
         last_name: { type: "string", example: "Soliyev" },
@@ -35,26 +41,50 @@ export class UsersController {
     })
   }))
 
+  @ApiOperation({
+    summary: `${Role.SUPERADMIN}`
+  })
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles(Role.SUPERADMIN)
+  @ApiBearerAuth()
   @Post()
   async create(
     @Body() body: CreateUserDto,
     @UploadedFile() file: Express.Multer.File) {
     const createdUser = await this.usersService.create(body, file.filename);
     return {
-      message: "User created successfully"
+      message: "Admin created successfully"
     }
   }
 
+  @ApiOperation({
+    summary: `${Role.SUPERADMIN}`
+  })
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles(Role.SUPERADMIN)
+  @ApiBearerAuth()
   @Get("all")
   findAll() {
     return this.usersService.findAll();
   }
 
+  @ApiOperation({
+    summary: `${Role.SUPERADMIN}, ${Role.ADMIN}`
+  })
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles(Role.SUPERADMIN, Role.ADMIN)
+  @ApiBearerAuth()
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.usersService.findOne(+id);
   }
 
+  @ApiOperation({
+    summary: `${Role.SUPERADMIN}, ${Role.ADMIN}`
+  })
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles(Role.SUPERADMIN, Role.ADMIN)
+  @ApiBearerAuth()
   @Patch(':id')
   @UseInterceptors(FileInterceptor('photo', {
     storage: diskStorage({
@@ -66,6 +96,7 @@ export class UsersController {
     })
   }))
 
+  @ApiBearerAuth()
   update(@Param('id') id: string,
     @Body() payload: UpdateUserDto,
     @UploadedFile() file?: Express.Multer.File) {
@@ -76,6 +107,12 @@ export class UsersController {
     }
   }
 
+  @ApiOperation({
+    summary: `${Role.SUPERADMIN}`
+  })
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles(Role.SUPERADMIN)
+  @ApiBearerAuth()
   @Delete(':id')
   remove(@Param('id') id: string) {
     const removedAdmin = this.usersService.remove(+id);
