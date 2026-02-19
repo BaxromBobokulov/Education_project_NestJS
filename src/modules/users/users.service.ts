@@ -4,6 +4,7 @@ import { UpdateUserDto } from './dto/update-user.dto';
 import * as bcrypt from "bcrypt"
 import { PrismaService } from 'src/core/database/prisma.service';
 import { Role, Status } from '@prisma/client';
+import { filterAdminDto } from './dto/filter-user.dto';
 
 @Injectable()
 export class UsersService {
@@ -49,9 +50,41 @@ export class UsersService {
   }
 
 
-  async findAll() {
+  async findAll(search: filterAdminDto) {
+    let where = {
+      status: Status.active
+    }
+
+    if (search?.first_name) {
+      where["first_name"] = search.first_name
+    }
+
+    if (search?.last_name) {
+      where["last_name"] = search.last_name
+    }
+
+    if (search?.phone) {
+      where["phone"] = search.phone
+    }
+
+    if (search?.email) {
+      where["email"] = search.email
+    }
     const users = await this.prisma.user.findMany({
-      where: { status: Status.active }
+      where,
+      select: {
+        id: true,
+        first_name: true,
+        last_name: true,
+        role: true,
+        phone: true,
+        email: true,
+        address: true,
+        photo: true,
+        status: true,
+        created_at: true,
+        update_at: true
+      }
     })
     return users
   }

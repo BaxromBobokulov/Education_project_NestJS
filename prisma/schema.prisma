@@ -71,7 +71,7 @@ model Student {
   role          Role
   phone         String         @unique
   email         String         @unique
-  birth_date    DateTime
+  birth_date    String
   address       String
   photo         String?
   status        StudentStatus  @default(active)
@@ -126,7 +126,7 @@ model Group {
   course_id   Int
   teacher_id  Int
   room_id     Int
-  start_date  DateTime
+  start_date  String
   week_day    Json
   start_time  String
   max_student Int
@@ -150,4 +150,6 @@ model StudentGroup {
 
   students Student @relation(fields: [student_id], references: [id])
   groups   Group   @relation(fields: [group_id], references: [id])
+
+  @@unique([student_id, group_id])
 }

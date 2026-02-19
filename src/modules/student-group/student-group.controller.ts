@@ -1,44 +1,38 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Query } from '@nestjs/common';
-import { RoomsService } from './rooms.service';
-import { CreateRoomDto } from './dto/create-room.dto';
-import { UpdateRoomDto } from './dto/update-room.dto';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards } from '@nestjs/common';
+import { StudentGroupService } from './student-group.service';
+import { CreateStudentGroupDto } from './dto/create-student-group.dto';
+import { UpdateStudentGroupDto } from './dto/update-student-group.dto';
 import { ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { Role } from '@prisma/client';
-import { Roles } from 'src/common/decorators/role.decorator';
 import { AuthGuard } from 'src/common/guards/jwt.guard';
 import { RolesGuard } from 'src/common/guards/role.guard';
-import { filterRoomDto } from './dto/filter-room.sto';
+import { Roles } from 'src/common/decorators/role.decorator';
 
-@Controller('rooms')
-export class RoomsController { 
-  constructor(private readonly roomsService: RoomsService) { }
+
+
+@ApiBearerAuth()
+@Controller('student-group')
+export class StudentGroupController {
+  constructor(private readonly studentGroupService: StudentGroupService) { }
 
   @ApiOperation({
     summary: `${Role.SUPERADMIN}, ${Role.ADMIN}`
   })
   @UseGuards(AuthGuard, RolesGuard)
   @Roles(Role.SUPERADMIN, Role.ADMIN)
-  @ApiBearerAuth()
   @Post()
-  async create(@Body() createRoomDto: CreateRoomDto) {
-    const createdRoom = await this.roomsService.create(createRoomDto);
-    return {
-      message: "Room created succcessfully"
-    }
+  create(@Body() payload: CreateStudentGroupDto) {
+    return this.studentGroupService.create(payload);
   }
-
 
   @ApiOperation({
     summary: `${Role.SUPERADMIN}, ${Role.ADMIN}`
   })
   @UseGuards(AuthGuard, RolesGuard)
   @Roles(Role.SUPERADMIN, Role.ADMIN)
-  @ApiBearerAuth()
   @Get("all")
-  findAll(
-    @Query() search : filterRoomDto
-  ) {
-    return this.roomsService.findAll(search);
+  findAll() {
+    return this.studentGroupService.findAll();
   }
 
   @ApiOperation({
@@ -46,10 +40,9 @@ export class RoomsController {
   })
   @UseGuards(AuthGuard, RolesGuard)
   @Roles(Role.SUPERADMIN, Role.ADMIN)
-  @ApiBearerAuth()
   @Get(':id')
   findOne(@Param('id') id: string) {
-    return this.roomsService.findOne(+id);
+    return this.studentGroupService.findOne(+id);
   }
 
   @ApiOperation({
@@ -57,21 +50,18 @@ export class RoomsController {
   })
   @UseGuards(AuthGuard, RolesGuard)
   @Roles(Role.SUPERADMIN, Role.ADMIN)
-  @ApiBearerAuth()
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateRoomDto: UpdateRoomDto) {
-    return this.roomsService.update(+id, updateRoomDto);
+  update(@Param('id') id: string, @Body() updateStudentGroupDto: UpdateStudentGroupDto) {
+    return this.studentGroupService.update(+id, updateStudentGroupDto);
   }
-
 
   @ApiOperation({
     summary: `${Role.SUPERADMIN}, ${Role.ADMIN}`
   })
   @UseGuards(AuthGuard, RolesGuard)
   @Roles(Role.SUPERADMIN, Role.ADMIN)
-  @ApiBearerAuth()
   @Delete(':id')
   remove(@Param('id') id: string) {
-    return this.roomsService.remove(+id);
+    return this.studentGroupService.remove(+id);
   }
 }

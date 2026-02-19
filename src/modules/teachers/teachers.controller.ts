@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseInterceptors, UploadedFile, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseInterceptors, UploadedFile, UseGuards, Query } from '@nestjs/common';
 import { TeachersService } from './teachers.service';
 import { CreateTeacherDto } from './dto/create-teacher.dto';
 import { UpdateTeacherDto } from './dto/update-teacher.dto';
@@ -9,6 +9,7 @@ import { Role } from '@prisma/client';
 import { AuthGuard } from 'src/common/guards/jwt.guard';
 import { RolesGuard } from 'src/common/guards/role.guard';
 import { Roles } from 'src/common/decorators/role.decorator';
+import { filterTeacherDto } from './dto/filter-teacher.dto';
 
 @Controller('teachers')
 export class TeachersController {
@@ -62,8 +63,10 @@ export class TeachersController {
   @Roles(Role.SUPERADMIN, Role.ADMIN)
   @ApiBearerAuth()
   @Get("all")
-  findAll() {
-    return this.teachersService.findAll();
+  findAll(
+    @Query() search : filterTeacherDto
+  ) {
+    return this.teachersService.findAll(search);
   }
 
   @ApiOperation({
@@ -128,4 +131,17 @@ export class TeachersController {
       message: "Teacher removed successfully"
     }
   }
+
+  
+  @ApiOperation({
+    summary: `${Role.SUPERADMIN}, ${Role.ADMIN} , ${Role.TEACHER}`
+  })
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles(Role.SUPERADMIN, Role.ADMIN, Role.TEACHER)
+  @ApiBearerAuth()
+  @Get(':id')
+  findGrups(@Param('id') id: string) {
+    return this.teachersService.findGroup(+id);
+  }
+
 }

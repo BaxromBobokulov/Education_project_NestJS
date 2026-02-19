@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Query } from '@nestjs/common';
 import { CoursesService } from './courses.service';
 import { CreateCourseDto } from './dto/create-course.dto';
 import { UpdateCourseDto } from './dto/update-course.dto';
@@ -7,6 +7,7 @@ import { Role } from '@prisma/client';
 import { AuthGuard } from 'src/common/guards/jwt.guard';
 import { RolesGuard } from 'src/common/guards/role.guard';
 import { Roles } from 'src/common/decorators/role.decorator';
+import { filterCourseDo } from './dto/filter-course.dto';
 
 @Controller('courses')
 export class CoursesController {
@@ -33,8 +34,10 @@ export class CoursesController {
   @Roles(Role.SUPERADMIN, Role.ADMIN)
   @ApiBearerAuth()
   @Get("all")
-  findAll() {
-    return this.coursesService.findAll();
+  findAll(
+    @Query() search : filterCourseDo
+  ) {
+    return this.coursesService.findAll(search);
   }
 
 

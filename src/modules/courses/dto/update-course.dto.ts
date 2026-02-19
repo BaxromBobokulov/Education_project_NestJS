@@ -13,7 +13,7 @@ export class UpdateCourseDto extends PartialType(CreateCourseDto) {
     @ApiPropertyOptional()
     @IsOptional()
     @IsString()
-    description?: string | null
+    description?: string
 
     @ApiPropertyOptional()
     @IsOptional()

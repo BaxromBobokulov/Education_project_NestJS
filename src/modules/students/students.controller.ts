@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseInterceptors, UploadedFile, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseInterceptors, UploadedFile, UseGuards, Query} from '@nestjs/common';
 import { StudentsService } from './students.service';
 import { CreateStudentDto } from './dto/create-student.dto';
 import { UpdateStudentDto } from './dto/update-student.dto';
@@ -9,6 +9,7 @@ import { Role } from '@prisma/client';
 import { AuthGuard } from 'src/common/guards/jwt.guard';
 import { RolesGuard } from 'src/common/guards/role.guard';
 import { Roles } from 'src/common/decorators/role.decorator';
+import { filterDto } from './dto/filter-student.dto';
 
 @Controller('students')
 export class StudentsController {
@@ -64,12 +65,14 @@ export class StudentsController {
   @Roles(Role.SUPERADMIN, Role.ADMIN)
   @ApiBearerAuth()
   @Get("all")
-  findAll() {
-    return this.studentsService.findAll();
+  findAll(
+    @Query() search : filterDto
+  ) {
+    return this.studentsService.findAll(search);
   }
 
   @ApiOperation({
-    summary: `${Role.SUPERADMIN} , ${Role.ADMIN}`
+    summary: `${Role.SUPERADMIN} , ${Role.ADMIN}` 
   })
   @UseGuards(AuthGuard, RolesGuard)
   @Roles(Role.SUPERADMIN, Role.ADMIN)

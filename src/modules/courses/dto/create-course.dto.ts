@@ -11,7 +11,7 @@ export class CreateCourseDto {
     @ApiPropertyOptional()
     @IsOptional()
     @IsString()
-    description?: string | null
+    description?: string
 
     @ApiProperty()
     @IsNumber()

@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseInterceptors, UploadedFile, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseInterceptors, UploadedFile, UseGuards, Query } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
@@ -9,6 +9,7 @@ import { AuthGuard } from 'src/common/guards/jwt.guard';
 import { RolesGuard } from 'src/common/guards/role.guard';
 import { Roles } from 'src/common/decorators/role.decorator';
 import { Role } from '@prisma/client';
+import { filterAdminDto } from './dto/filter-user.dto';
 
 
 @Controller('admin')
@@ -64,8 +65,10 @@ export class UsersController {
   @Roles(Role.SUPERADMIN)
   @ApiBearerAuth()
   @Get("all")
-  findAll() {
-    return this.usersService.findAll();
+  findAll(
+    @Query() search : filterAdminDto
+  ) {
+    return this.usersService.findAll(search);
   }
 
   @ApiOperation({

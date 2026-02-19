@@ -4,6 +4,7 @@ import { UpdateTeacherDto } from './dto/update-teacher.dto';
 import * as bcrypt from "bcrypt"
 import { PrismaService } from 'src/core/database/prisma.service';
 import { Role, Status } from '@prisma/client';
+import { filterTeacherDto } from './dto/filter-teacher.dto';
 
 @Injectable()
 export class TeachersService {
@@ -49,9 +50,28 @@ export class TeachersService {
   }
 
 
-  async findAll() {
+  async findAll(search: filterTeacherDto) {
+    let where = {
+      status: Status.active
+    }
+
+    if (search?.first_name) {
+      where["first_name"] = search.first_name
+    }
+
+    if (search?.last_name) {
+      where["last_name"] = search.last_name
+    }
+
+    if (search?.phone) {
+      where["phone"] = search.phone
+    }
+
+    if (search?.email) {
+      where["email"] = search.email
+    }
     const teachers = await this.prisma.teacher.findMany({
-      where: { status: Status.active }
+      where
     })
     return teachers
   }
@@ -95,4 +115,13 @@ export class TeachersService {
       data: { status: Status.inactive }
     })
   }
+
+  async findGroup(id: number) {
+    this.findOne(id)
+    return this.prisma.group.findMany({
+      where: { teacher_id: id }
+    })
+  }
 }
+
+

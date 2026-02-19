@@ -3,6 +3,7 @@ import { CreateCourseDto } from './dto/create-course.dto';
 import { UpdateCourseDto } from './dto/update-course.dto';
 import { PrismaService } from 'src/core/database/prisma.service';
 import { Status } from '@prisma/client';
+import { filterCourseDo } from './dto/filter-course.dto';
 
 @Injectable()
 export class CoursesService {
@@ -20,9 +21,29 @@ export class CoursesService {
     })
   }
 
-  async findAll() {
+  async findAll(search: filterCourseDo) {
+    let where = {
+      status: Status.active
+    }
+
+    if (search?.name) {
+      where["name"] = search.name
+    }
+
+    if (search?.price) {
+      where["price"] = search.price
+    }
+
+    if (search?.duration_hours) {
+      where["duration_hours"] = search.duration_hours
+    }
+
+    if (search?.duration_month) {
+      where["duration_month"] = search.duration_month
+    }
+
     const courses = await this.prisma.course.findMany({
-      where: { status: Status.active }
+      where
     })
 
     return courses

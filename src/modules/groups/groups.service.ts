@@ -1,26 +1,135 @@
-import { Injectable } from '@nestjs/common';
+import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { CreateGroupDto } from './dto/create-group.dto';
 import { UpdateGroupDto } from './dto/update-group.dto';
+import { PrismaService } from 'src/core/database/prisma.service';
+import { GroupStatus, Status } from '@prisma/client';
+import { waitForDebugger } from 'inspector';
+import { filterGroupDto } from './dto/filter-group.dto';
 
 @Injectable()
 export class GroupsService {
-  create(createGroupDto: CreateGroupDto) {
-    return 'This action adds a new group';
+  constructor(private prisma: PrismaService) { }
+
+
+  async create(payload: CreateGroupDto) {
+    const timeToMinutes = (time: string) => {
+      const [hours, minutes] = time.split(':').map(Number);
+      return hours * 60 + minutes;
+    };
+
+    const group = await this.prisma.group.findFirst({
+      where: { name: payload.name },
+    });
+    if (group) throw new ConflictException('Group already exists');
+
+    const teacher = await this.prisma.teacher.findFirst({
+      where: { id: payload.teacher_id, status: GroupStatus.active },
+    });
+    if (!teacher) throw new NotFoundException('Active teacher not found');
+
+    const existCourse = await this.prisma.course.findFirst({
+      where: { id: payload.course_id, status: GroupStatus.active },
+    });
+    if (!existCourse) throw new NotFoundException('Active course not found');
+
+    const room = await this.prisma.room.findFirst({
+      where: { id: payload.room_id }, // xohlasang: status: GroupStatus.active
+    });
+    if (!room) throw new NotFoundException('Active room not found');
+
+    const startNew = timeToMinutes(payload.start_time);
+    const endNew = startNew + Math.round(existCourse.duration_hours * 60);
+
+    const roomGroups = await this.prisma.group.findMany({
+      where: {
+        room_id: payload.room_id,
+        OR: [{ status: GroupStatus.active }, { status: GroupStatus.planned }],
+      },
+      select: {
+        start_time: true,
+        courses: {
+          select: { duration_hours: true },
+        },
+      },
+    });
+
+    const roomTime = roomGroups.some((el) => {
+      const start = timeToMinutes(el.start_time);
+      const end = start + Math.round(el.courses.duration_hours * 60);
+      return start < endNew && end > startNew;
+    });
+
+    if (roomTime) throw new ConflictException('Room is already reserved');
+
+    await this.prisma.group.create({
+      data: { ...payload },
+    });
+
+    return { success: true, message: 'Group created successfully' };
   }
 
-  findAll() {
-    return `This action returns all groups`;
+
+
+  async findAll(search: filterGroupDto) {
+    let where = {
+      status: GroupStatus.active
+    }
+    if (search?.name) {
+      where['name'] = search.name
+    }
+
+    if (search?.start_date) {
+      where['start_date'] = search.start_date
+    }
+
+    if (search?.week_day) {
+      where['week_day'] = search.week_day
+    }
+
+    return await this.prisma.group.findMany({
+      where
+    });
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} group`;
+  async findArxiv() {
+    return await this.prisma.group.findMany({
+      where: { status: GroupStatus.completed }
+    })
   }
 
-  update(id: number, updateGroupDto: UpdateGroupDto) {
-    return `This action updates a #${id} group`;
+  async findOne(id: number) {
+    const group = await this.prisma.group.findFirst({
+      where: { id, status: Status.active },
+      select: {
+        max_student: true
+      }
+    })
+
+    if (!group) throw new NotFoundException("Guruh mavjud emas yoki inactive")
+    return group
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} group`;
+
+  async update(id: number, updateGroupDto: UpdateGroupDto) {
+    this.findOne(id)
+    const updatedGroup = this.prisma.group.update({
+      where: { id },
+      data: updateGroupDto
+    });
+
+    return {
+      message: "Group updated successfully"
+    }
+  }
+
+  async remove(id: number) {
+    this.findOne(id)
+    await this.prisma.group.update({
+      where: { id },
+      data: { status: GroupStatus.completed }
+    })
   }
 }
+
+
+

@@ -2,6 +2,7 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 import { CreateRoomDto } from './dto/create-room.dto';
 import { UpdateRoomDto } from './dto/update-room.dto';
 import { PrismaService } from 'src/core/database/prisma.service';
+import { filterRoomDto } from './dto/filter-room.sto';
 
 @Injectable()
 export class RoomsService {
@@ -12,8 +13,15 @@ export class RoomsService {
     })
   }
 
-  async findAll() {
-    const rooms = await this.prisma.room.findMany()
+  async findAll(search : filterRoomDto) {
+    let where  = {}
+
+    if(search?.name){
+      where["name"] = search.name
+    }
+    const rooms = await this.prisma.room.findMany(
+      where
+    )
     return rooms
   }
 
