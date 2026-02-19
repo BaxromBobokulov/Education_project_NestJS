@@ -69,6 +69,18 @@ export class StudentsController {
   }
 
   @ApiOperation({
+    summary: `${Role.SUPERADMIN} , ${Role.ADMIN}`
+  })
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles(Role.SUPERADMIN, Role.ADMIN)
+  @ApiBearerAuth()
+  @Get("arxiv")
+  findArxiv() {
+    return this.studentsService.findArxiv();
+  }
+
+
+  @ApiOperation({
     summary: `${Role.SUPERADMIN}, ${Role.ADMIN}, ${Role.STUDENT}`
   })
   @UseGuards(AuthGuard, RolesGuard)

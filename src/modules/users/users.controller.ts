@@ -16,7 +16,7 @@ export class UsersController {
   constructor(private readonly usersService: UsersService) { }
 
 
-  @ApiConsumes("multipart/form-data") 
+  @ApiConsumes("multipart/form-data")
   @ApiBody({
     schema: {
       type: 'object',
@@ -66,6 +66,17 @@ export class UsersController {
   @Get("all")
   findAll() {
     return this.usersService.findAll();
+  }
+
+  @ApiOperation({
+    summary: `${Role.SUPERADMIN}`
+  })
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles(Role.SUPERADMIN)
+  @ApiBearerAuth()
+  @Get("arxiv")
+  findArxiv(){
+    return this.usersService.findArxiv();
   }
 
   @ApiOperation({

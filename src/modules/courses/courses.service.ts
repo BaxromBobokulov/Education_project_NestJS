@@ -1,26 +1,66 @@
-import { Injectable } from '@nestjs/common';
+import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { CreateCourseDto } from './dto/create-course.dto';
 import { UpdateCourseDto } from './dto/update-course.dto';
+import { PrismaService } from 'src/core/database/prisma.service';
+import { Status } from '@prisma/client';
 
 @Injectable()
 export class CoursesService {
-  create(createCourseDto: CreateCourseDto) {
-    return 'This action adds a new course';
+  constructor(private prisma: PrismaService) { }
+  async create(payload: CreateCourseDto) {
+    const checkName = await this.prisma.course.findUnique({
+      where: { name: payload.name },
+      select: { id: true }
+    })
+
+    if (checkName) throw new ConflictException("Bu nomdagi course allaqachon mavjud")
+
+    const createdCourse = await this.prisma.course.create({
+      data: payload
+    })
   }
 
-  findAll() {
-    return `This action returns all courses`;
+  async findAll() {
+    const courses = await this.prisma.course.findMany({
+      where: { status: Status.active }
+    })
+
+    return courses
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} course`;
+  async findArxiv() {
+    const arxiv = await this.prisma.course.findMany({
+      where: { status: Status.inactive }
+    })
+
+    return arxiv
   }
 
-  update(id: number, updateCourseDto: UpdateCourseDto) {
-    return `This action updates a #${id} course`;
+  async findOne(id: number) {
+    const course = await this.prisma.course.findFirst({
+      where: { id, status: Status.active }
+    })
+
+    if (!course) throw new NotFoundException("Course mavjud emas yoki inactive")
+    return course
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} course`;
+
+  async update(id: number, payload: UpdateCourseDto) {
+    this.findOne(id)
+    const updatedCourse = await this.prisma.course.update({
+      where: { id },
+      data: payload
+    })
   }
-}
+
+  async remove(id: number) {
+    this.findOne(id)
+    const removedCourse = await this.prisma.course.update({
+      where: { id },
+      data: {
+        status: Status.inactive
+      }
+    })
+  }
+} 

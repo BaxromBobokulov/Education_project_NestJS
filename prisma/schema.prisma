@@ -100,7 +100,7 @@ model Course {
   id             Int         @id @default(autoincrement())
   name           String      @unique
   description    String?
-  price          Decimal
+  price          Int
   duration_month Int
   duration_hours Int
   level          CourseLevel

@@ -56,6 +56,14 @@ export class TeachersService {
     return teachers
   }
 
+  async findArxiv() {
+    const arxiv = await this.prisma.teacher.findMany({
+      where: { status: Status.inactive }
+    })
+
+    return arxiv
+  }
+
   async findOne(id: number) {
     const teachers = await this.prisma.teacher.findFirst({
       where: { id, status: Status.active }
@@ -81,6 +89,7 @@ export class TeachersService {
 
 
   async remove(id: number) {
+    this.findOne(id)
     return this.prisma.teacher.update({
       where: { id },
       data: { status: Status.inactive }

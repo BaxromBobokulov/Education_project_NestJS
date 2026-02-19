@@ -1,26 +1,45 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { CreateRoomDto } from './dto/create-room.dto';
 import { UpdateRoomDto } from './dto/update-room.dto';
+import { PrismaService } from 'src/core/database/prisma.service';
 
 @Injectable()
 export class RoomsService {
-  create(createRoomDto: CreateRoomDto) {
-    return 'This action adds a new room';
+  constructor(private prisma : PrismaService) {}
+  async create(createRoomDto: CreateRoomDto) {
+    const createdRoom = await this.prisma.room.create({
+      data:createRoomDto
+    })
   }
 
-  findAll() {
-    return `This action returns all rooms`;
+  async findAll() {
+    const rooms = await this.prisma.room.findMany()
+    return rooms
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} room`;
+  async findOne(id: number) {
+    const chechId = await this.prisma.room.findUnique({
+      where : {id}
+    })
+
+    if(!chechId) throw new BadRequestException("Siz yuborgan xona mavjud emas")
+
+    return chechId
   }
 
-  update(id: number, updateRoomDto: UpdateRoomDto) {
-    return `This action updates a #${id} room`;
+  async update(id: number, updateRoomDto: UpdateRoomDto) {
+    this.findOne(id)
+    const updatedRoom = await this.prisma.room.update({
+      where:{id},
+      data:updateRoomDto
+    })
+
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} room`;
+  async remove(id: number) {
+    this.findOne(id)
+    const removedRoom = await this.prisma.room.delete({
+      where: {id}
+    })
   }
 }
