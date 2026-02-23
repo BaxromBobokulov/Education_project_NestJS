@@ -3,6 +3,7 @@ import { TeachersService } from './teachers.service';
 import { TeachersController } from './teachers.controller';
 
 @Module({
+  exports:[TeachersService],
   controllers: [TeachersController],
   providers: [TeachersService],
 })

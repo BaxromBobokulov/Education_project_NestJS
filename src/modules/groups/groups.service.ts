@@ -5,10 +5,17 @@ import { PrismaService } from 'src/core/database/prisma.service';
 import { GroupStatus, Status } from '@prisma/client';
 import { waitForDebugger } from 'inspector';
 import { filterGroupDto } from './dto/filter-group.dto';
+import { TeachersService } from '../teachers/teachers.service';
+import { CoursesService } from '../courses/courses.service';
+import { RoomsService } from '../rooms/rooms.service';
 
 @Injectable()
 export class GroupsService {
-  constructor(private prisma: PrismaService) { }
+  constructor(
+    private prisma: PrismaService,
+    private teacherService: TeachersService,
+    private courseService: CoursesService,
+    private roomService: RoomsService) { }
 
 
   async create(payload: CreateGroupDto) {
@@ -20,22 +27,14 @@ export class GroupsService {
     const group = await this.prisma.group.findFirst({
       where: { name: payload.name },
     });
+
     if (group) throw new ConflictException('Group already exists');
 
-    const teacher = await this.prisma.teacher.findFirst({
-      where: { id: payload.teacher_id, status: GroupStatus.active },
-    });
-    if (!teacher) throw new NotFoundException('Active teacher not found');
+    this.teacherService.findOne(payload.teacher_id)
 
-    const existCourse = await this.prisma.course.findFirst({
-      where: { id: payload.course_id, status: GroupStatus.active },
-    });
-    if (!existCourse) throw new NotFoundException('Active course not found');
+    const existCourse = await this.courseService.findOne(payload.course_id)
 
-    const room = await this.prisma.room.findFirst({
-      where: { id: payload.room_id }, // xohlasang: status: GroupStatus.active
-    });
-    if (!room) throw new NotFoundException('Active room not found');
+    await this.roomService.findOne(payload.room_id)
 
     const startNew = timeToMinutes(payload.start_time);
     const endNew = startNew + Math.round(existCourse.duration_hours * 60);

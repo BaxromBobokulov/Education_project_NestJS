@@ -59,7 +59,8 @@ export class CoursesService {
 
   async findOne(id: number) {
     const course = await this.prisma.course.findFirst({
-      where: { id, status: Status.active }
+      where: { id, status: Status.active },
+      select : {duration_hours:true}
     })
 
     if (!course) throw new NotFoundException("Course mavjud emas yoki inactive")
