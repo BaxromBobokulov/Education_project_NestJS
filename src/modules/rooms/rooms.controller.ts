@@ -19,11 +19,12 @@ export class RoomsController {
   @UseGuards(AuthGuard, RolesGuard)
   @Roles(Role.SUPERADMIN, Role.ADMIN)
   @ApiBearerAuth()
-  @Post()
+  @Post("add")
   async create(@Body() createRoomDto: CreateRoomDto) {
     const createdRoom = await this.roomsService.create(createRoomDto);
     return {
-      message: "Room created succcessfully"
+      message: "Room created succcessfully",
+      data: createdRoom
     }
   }
 
@@ -58,7 +59,7 @@ export class RoomsController {
   @UseGuards(AuthGuard, RolesGuard)
   @Roles(Role.SUPERADMIN, Role.ADMIN)
   @ApiBearerAuth()
-  @Patch(':id')
+  @Patch('update/:id')
   update(@Param('id') id: string, @Body() updateRoomDto: UpdateRoomDto) {
     return this.roomsService.update(+id, updateRoomDto);
   }
@@ -70,7 +71,7 @@ export class RoomsController {
   @UseGuards(AuthGuard, RolesGuard)
   @Roles(Role.SUPERADMIN, Role.ADMIN)
   @ApiBearerAuth()
-  @Delete(':id')
+  @Delete('delete/:id')
   remove(@Param('id') id: string) {
     return this.roomsService.remove(+id);
   }

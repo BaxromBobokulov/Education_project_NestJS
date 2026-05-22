@@ -11,8 +11,8 @@ import { Roles } from 'src/common/decorators/role.decorator';
 import { Role } from '@prisma/client';
 import { filterAdminDto } from './dto/filter-user.dto';
 
-
-@Controller('admin')
+@ApiBearerAuth()
+@Controller('user')
 export class UsersController {
   constructor(private readonly usersService: UsersService) { }
 
@@ -26,6 +26,12 @@ export class UsersController {
         last_name: { type: "string", example: "Soliyev" },
         password: { type: "string", example: "Salom12!" },
         phone: { type: "string", example: "941234567" },
+        role : {
+          type: "string",
+          enum: Object.values(Role),
+          default: Role.STUDENT,
+          description: "Kerakli rolni tanlang"
+        },
         email: { type: "string", example: "mahmud@gmail.com" },
         address: { type: "string", example: "string" },
         photo: { type: "string", format: "binary" }
@@ -43,27 +49,25 @@ export class UsersController {
   }))
 
   @ApiOperation({
-    summary: `${Role.SUPERADMIN}`
+    summary: `${Role.SUPERADMIN}, ${Role.ADMIN}`
   })
   @UseGuards(AuthGuard, RolesGuard)
-  @Roles(Role.SUPERADMIN)
-  @ApiBearerAuth()
+  @Roles(Role.SUPERADMIN, Role.ADMIN)
   @Post()
   async create(
     @Body() body: CreateUserDto,
     @UploadedFile() file: Express.Multer.File) {
     const createdUser = await this.usersService.create(body, file.filename);
     return {
-      message: "Admin created successfully"
+      message: "Foydalanuvchi muvaffaqiyatli yaratildi"
     }
   }
 
   @ApiOperation({
-    summary: `${Role.SUPERADMIN}`
+    summary: `${Role.SUPERADMIN} , ${Role.ADMIN}`
   })
   @UseGuards(AuthGuard, RolesGuard)
-  @Roles(Role.SUPERADMIN)
-  @ApiBearerAuth()
+  @Roles(Role.SUPERADMIN, Role.ADMIN)
   @Get("all")
   findAll(
     @Query() search : filterAdminDto
@@ -76,7 +80,6 @@ export class UsersController {
   })
   @UseGuards(AuthGuard, RolesGuard)
   @Roles(Role.SUPERADMIN)
-  @ApiBearerAuth()
   @Get("arxiv")
   findArxiv(){
     return this.usersService.findArxiv();
@@ -87,7 +90,6 @@ export class UsersController {
   })
   @UseGuards(AuthGuard, RolesGuard)
   @Roles(Role.SUPERADMIN, Role.ADMIN)
-  @ApiBearerAuth()
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.usersService.findOne(+id);
@@ -98,7 +100,6 @@ export class UsersController {
   })
   @UseGuards(AuthGuard, RolesGuard)
   @Roles(Role.SUPERADMIN, Role.ADMIN)
-  @ApiBearerAuth()
   @Patch(':id')
   @UseInterceptors(FileInterceptor('photo', {
     storage: diskStorage({
@@ -110,14 +111,13 @@ export class UsersController {
     })
   }))
 
-  @ApiBearerAuth()
   update(@Param('id') id: string,
     @Body() payload: UpdateUserDto,
     @UploadedFile() file?: Express.Multer.File) {
     const photo = file?.filename
-    const updatedAdmin = this.usersService.update(+id, payload, photo);
+    const updatedUser = this.usersService.update(+id, payload, photo);
     return {
-      message: "Admin updated successfully"
+      message: "Foydalanuvchi muvaffaqiyatli yangilandi"
     }
   }
 
@@ -126,12 +126,11 @@ export class UsersController {
   })
   @UseGuards(AuthGuard, RolesGuard)
   @Roles(Role.SUPERADMIN)
-  @ApiBearerAuth()
   @Delete(':id')
   remove(@Param('id') id: string) {
-    const removedAdmin = this.usersService.remove(+id);
+    const removedUser = this.usersService.remove(+id);
     return {
-      message: "Admin removed successfully"
+      message: "Foydalanuvchi muvaffaqiyatli o'chirildi"
     }
   }
 }

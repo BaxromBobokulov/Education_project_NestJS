@@ -1,5 +1,6 @@
 import { ApiProperty } from "@nestjs/swagger"
-import { IsEmail, IsMobilePhone, IsString, Matches } from "class-validator"
+import { Role } from "@prisma/client"
+import { IsEmail, IsEnum, IsMobilePhone, IsString, Matches } from "class-validator"
 
 export class CreateUserDto {
     
@@ -19,6 +20,10 @@ export class CreateUserDto {
     @ApiProperty()
     @IsMobilePhone("uz-UZ")
     phone: string   
+
+    @ApiProperty()
+    @IsEnum(Role)
+    role: Role
 
     @ApiProperty()
     @IsEmail()

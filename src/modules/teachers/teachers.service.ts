@@ -15,7 +15,7 @@ export class TeachersService {
 
     if (!filename) throw new BadRequestException("Iltimos rasmingizni yuklang");
 
-    const checkEmail = await this.prisma.teacher.findUnique({
+    const checkEmail = await this.prisma.user.findUnique({
       where: { email: payload.email },
       select: { id: true }
     })
@@ -24,7 +24,7 @@ export class TeachersService {
       throw new ConflictException("Bu email allaqachon mavjud")
     }
 
-    const checkPhone = await this.prisma.teacher.findUnique({
+    const checkPhone = await this.prisma.user.findUnique({
       where: { phone: payload.phone },
       select: { id: true }
     })
@@ -33,7 +33,7 @@ export class TeachersService {
       throw new ConflictException("Bu telefon raqam alloqachon mavjud")
     }
 
-    const CreatedTeacher = await this.prisma.teacher.create({
+    const CreatedTeacher = await this.prisma.user.create({
       data: {
         first_name: payload.first_name,
         last_name: payload.last_name,
@@ -52,7 +52,8 @@ export class TeachersService {
 
   async findAll(search: filterTeacherDto) {
     let where = {
-      status: Status.active
+      status: Status.active,
+      role: Role.TEACHER
     }
 
     if (search?.first_name) {
@@ -70,14 +71,14 @@ export class TeachersService {
     if (search?.email) {
       where["email"] = search.email
     }
-    const teachers = await this.prisma.teacher.findMany({
+    const teachers = await this.prisma.user.findMany({
       where
     })
     return teachers
   }
 
   async findArxiv() {
-    const arxiv = await this.prisma.teacher.findMany({
+    const arxiv = await this.prisma.user.findMany({
       where: { status: Status.inactive }
     })
 
@@ -85,7 +86,7 @@ export class TeachersService {
   }
 
   async findOne(id: number) {
-    const teachers = await this.prisma.teacher.findFirst({
+    const teachers = await this.prisma.user.findFirst({
       where: { id, status: Status.active }
     })
     if (!teachers) throw new NotFoundException("Teacher mavjud emas yoki inactive")
@@ -98,7 +99,7 @@ export class TeachersService {
       payload.password = await bcrypt.hash(payload.password, 10)
     }
 
-    return this.prisma.teacher.update({
+    return this.prisma.user.update({
       where: { id },
       data: {
         ...payload,
@@ -110,7 +111,7 @@ export class TeachersService {
 
   async remove(id: number) {
     this.findOne(id)
-    return this.prisma.teacher.update({
+    return this.prisma.user.update({
       where: { id },
       data: { status: Status.inactive }
     })
@@ -119,7 +120,7 @@ export class TeachersService {
   async findGroup(id: number) {
     this.findOne(id)
     return this.prisma.group.findMany({
-      where: { teacher_id: id }
+      where: { user_id: id }
     })
   }
 }

@@ -35,8 +35,7 @@ export class UpdateGroupDto extends PartialType(CreateGroupDto) {
 
     @ApiPropertyOptional()
     @IsOptional()
-    @IsString()
-    week_day: string
+    week_day: string[]
 
     @ApiPropertyOptional()
     @IsOptional()

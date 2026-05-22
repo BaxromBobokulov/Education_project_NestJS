@@ -26,6 +26,6 @@ export class CreateCourseDto {
     duration_hours: number
 
     @ApiProperty()
-    @IsEnum(CourseLevel)
-    level:CourseLevel
+    @IsString()
+    color: string
 }

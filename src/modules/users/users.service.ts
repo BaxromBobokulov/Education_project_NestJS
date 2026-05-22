@@ -38,7 +38,7 @@ export class UsersService {
         first_name: payload.first_name,
         last_name: payload.last_name,
         password: hash,
-        role: Role.ADMIN,
+        role: payload.role,
         phone: payload.phone,
         email: payload.email,
         address: payload.address,
@@ -46,7 +46,6 @@ export class UsersService {
 
       }
     })
-
   }
 
 

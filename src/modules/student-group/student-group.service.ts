@@ -16,12 +16,11 @@ export class StudentGroupService {
   ) { }
   async create(payload: CreateStudentGroupDto) {
 
-    await this.studentService.findOne(payload.student_id)
+    await this.studentService.findOne(payload.user_id)
     const group = await this.groupService.findOne(payload.group_id)
 
     const chechDuplicate = await this.prisma.studentGroup.findFirst({
       where: {
-        student_id: payload.student_id,
         group_id: payload.group_id,
         status: Status.active
       }

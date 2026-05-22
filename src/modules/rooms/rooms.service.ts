@@ -8,6 +8,13 @@ import { filterRoomDto } from './dto/filter-room.sto';
 export class RoomsService {
   constructor(private prisma : PrismaService) {}
   async create(createRoomDto: CreateRoomDto) {
+    const checkName = await this.prisma.room.findUnique({
+      where : {name:createRoomDto.name},
+      select : {id:true}
+    })
+    
+    if(checkName) throw new BadRequestException("Bu nomdagi xona allaqachon mavjud")
+    
     const createdRoom = await this.prisma.room.create({
       data:createRoomDto
     })
@@ -46,6 +53,7 @@ export class RoomsService {
 
   async remove(id: number) {
     this.findOne(id)
+    console.log(id);
     const removedRoom = await this.prisma.room.delete({
       where: {id}
     })

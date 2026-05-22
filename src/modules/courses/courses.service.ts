@@ -19,6 +19,9 @@ export class CoursesService {
     const createdCourse = await this.prisma.course.create({
       data: payload
     })
+    return {
+      message : "Course muvaffaqiyatli yaratildi"
+    }
   }
 
   async findAll(search: filterCourseDo) {

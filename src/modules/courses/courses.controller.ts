@@ -2,8 +2,8 @@ import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Query } f
 import { CoursesService } from './courses.service';
 import { CreateCourseDto } from './dto/create-course.dto';
 import { UpdateCourseDto } from './dto/update-course.dto';
-import { ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
-import { Role } from '@prisma/client';
+import { ApiBearerAuth, ApiBody, ApiConsumes, ApiOperation } from '@nestjs/swagger';
+import { CourseLevel, Role } from '@prisma/client';
 import { AuthGuard } from 'src/common/guards/jwt.guard';
 import { RolesGuard } from 'src/common/guards/role.guard';
 import { Roles } from 'src/common/decorators/role.decorator';
@@ -13,19 +13,23 @@ import { filterCourseDo } from './dto/filter-course.dto';
 export class CoursesController {
   constructor(private readonly coursesService: CoursesService) { }
 
-  @ApiOperation({
-    summary: `${Role.SUPERADMIN}, ${Role.ADMIN}`
-  })
-  @UseGuards(AuthGuard, RolesGuard)
-  @Roles(Role.SUPERADMIN, Role.ADMIN)
-  @ApiBearerAuth()
-  @Post()
-  async create(@Body() createCourseDto: CreateCourseDto) {
-    const createdCourse = await this.coursesService.create(createCourseDto);
-    return {
-      message: "Course created successfully"
+@ApiBody({
+  schema: {
+    type: 'object',
+    properties: {
+      name: { type: "string", example: "NodeJs & ReactJs" },
+      description: { type: "string", example: "NodeJs & ReactJs kursi" },
+      price: { type: "number", example: 100 },
+      duration_month: { type: "number", example: 6 },
+      duration_hours: { type: "number", example: 120 },
+      color : { type: "string", example: "#f8fafc" }
     }
   }
+})
+@Post()
+async create(@Body() createCourseDto: CreateCourseDto) {
+  return this.coursesService.create(createCourseDto);
+}
 
   @ApiOperation({
     summary: `${Role.SUPERADMIN}, ${Role.ADMIN}`
@@ -35,7 +39,7 @@ export class CoursesController {
   @ApiBearerAuth()
   @Get("all")
   findAll(
-    @Query() search : filterCourseDo
+    @Query() search: filterCourseDo
   ) {
     return this.coursesService.findAll(search);
   }

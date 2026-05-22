@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger"
-import { IsDateString, IsNumber, IsOptional, IsString, Max } from "class-validator"
+import { IsArray, IsDateString, IsNumber, IsOptional, IsString, Max } from "class-validator"
 
 export class CreateGroupDto {
 
@@ -18,7 +18,7 @@ export class CreateGroupDto {
 
     @ApiProperty()
     @IsNumber()
-    teacher_id: number
+    user_id: number
 
     @ApiProperty()
     @IsNumber()
@@ -28,9 +28,9 @@ export class CreateGroupDto {
     @IsDateString()
     start_date: string
 
-    @ApiProperty()
-    @IsString()
-    week_day: string
+    @ApiProperty({ description: 'Array of week days e.g. ["MONDAY","WEDNESDAY"]' })
+    @IsArray()
+    week_day: string[]
 
     @ApiProperty()
     @IsString()

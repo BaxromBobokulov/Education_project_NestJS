@@ -9,6 +9,8 @@ import { RoomsModule } from './modules/rooms/rooms.module';
 import { GroupsModule } from './modules/groups/groups.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { StudentGroupModule } from './modules/student-group/student-group.module';
+import { LessonsModule } from './modules/lessons/lessons.module';
+import { HomeworkModule } from './modules/homework/homework.module';
 
 
 @Module({
@@ -24,6 +26,8 @@ import { StudentGroupModule } from './modules/student-group/student-group.module
     RoomsModule,
     GroupsModule,
     StudentGroupModule,
+    LessonsModule,
+    HomeworkModule,
   ]
 })
 export class AppModule {}

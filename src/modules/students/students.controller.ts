@@ -51,7 +51,7 @@ export class StudentsController {
   async create(
     @Body() createStudentDto: CreateStudentDto,
     @UploadedFile() file: Express.Multer.File) {
-    const CreatedStudent = await this.studentsService.create(createStudentDto, file.filename);
+    const CreatedStudent = await this.studentsService.create(createStudentDto, file?.filename);
     return {
       message: "Student created successfully"
     }

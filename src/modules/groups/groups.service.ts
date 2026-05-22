@@ -2,8 +2,7 @@ import { ConflictException, Injectable, NotFoundException } from '@nestjs/common
 import { CreateGroupDto } from './dto/create-group.dto';
 import { UpdateGroupDto } from './dto/update-group.dto';
 import { PrismaService } from 'src/core/database/prisma.service';
-import { GroupStatus, Status } from '@prisma/client';
-import { waitForDebugger } from 'inspector';
+import { GroupStatus } from '@prisma/client';
 import { filterGroupDto } from './dto/filter-group.dto';
 import { TeachersService } from '../teachers/teachers.service';
 import { CoursesService } from '../courses/courses.service';
@@ -30,11 +29,11 @@ export class GroupsService {
 
     if (group) throw new ConflictException('Group already exists');
 
-    this.teacherService.findOne(payload.teacher_id)
+    await this.teacherService.findOne(payload.user_id);
 
-    const existCourse = await this.courseService.findOne(payload.course_id)
+    const existCourse = await this.courseService.findOne(payload.course_id);
 
-    await this.roomService.findOne(payload.room_id)
+    await this.roomService.findOne(payload.room_id);
 
     const startNew = timeToMinutes(payload.start_time);
     const endNew = startNew + Math.round(existCourse.duration_hours * 60);
@@ -61,7 +60,17 @@ export class GroupsService {
     if (roomTime) throw new ConflictException('Room is already reserved');
 
     await this.prisma.group.create({
-      data: { ...payload },
+      data: {
+        name: payload.name,
+        description: payload.description,
+        course_id: payload.course_id,
+        user_id: payload.user_id,
+        room_id: payload.room_id,
+        start_date: payload.start_date,
+        week_day: Array.isArray(payload.week_day) ? payload.week_day : [payload.week_day],
+        start_time: payload.start_time,
+        max_student: payload.max_student,
+      },
     });
 
     return { success: true, message: 'Group created successfully' };
@@ -70,11 +79,11 @@ export class GroupsService {
 
 
   async findAll(search: filterGroupDto) {
-    let where = {
+    let where: any = {
       status: GroupStatus.active
     }
     if (search?.name) {
-      where['name'] = search.name
+      where['name'] = { contains: search.name, mode: 'insensitive' }
     }
 
     if (search?.start_date) {
@@ -86,21 +95,63 @@ export class GroupsService {
     }
 
     return await this.prisma.group.findMany({
-      where
+      where,
+      include: {
+        courses: true,
+        rooms: true,
+        users: {
+          select: {
+            id: true,
+            first_name: true,
+            last_name: true,
+            photo: true,
+          }
+        },
+        studentGroups: {
+          where: { status: 'active' },
+          select: { id: true }
+        }
+      },
+      orderBy: { created_at: 'desc' }
     });
   }
 
   async findArxiv() {
     return await this.prisma.group.findMany({
-      where: { status: GroupStatus.completed }
+      where: { status: GroupStatus.completed },
+      include: {
+        courses: true,
+        rooms: true,
+        users: {
+          select: {
+            id: true,
+            first_name: true,
+            last_name: true,
+            photo: true,
+          }
+        },
+        studentGroups: {
+          where: { status: 'active' },
+          select: { id: true }
+        }
+      },
+      orderBy: { created_at: 'desc' }
     })
   }
 
   async findOne(id: number) {
     const group = await this.prisma.group.findFirst({
-      where: { id, status: Status.active },
-      select: {
-        max_student: true
+      where: { id },
+      include: {
+        courses: true,
+        rooms: true,
+        users: {
+          select: { id: true, first_name: true, last_name: true }
+        },
+        studentGroups: {
+          where: { status: 'active' },
+          select: { id: true }
+        }
       }
     })
 

@@ -5,7 +5,7 @@ export class CreateStudentGroupDto {
 
     @ApiProperty()
     @IsNumber()
-    student_id: number
+    user_id: number
 
     @ApiProperty()
     @IsNumber()
