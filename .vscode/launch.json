@@ -8,8 +8,8 @@
       "args": [],
       "stopAtEntry": false,
       "externalConsole": true,
-      "cwd": "c:/Users/User/OneDrive/Desktop/Project_Nest",
-      "program": "c:/Users/User/OneDrive/Desktop/Project_Nest/build/Debug/outDebug",
+      "cwd": "c:/Users/User/OneDrive/Desktop/n_213",
+      "program": "c:/Users/User/OneDrive/Desktop/n_213/build/Debug/outDebug",
       "MIMode": "gdb",
       "miDebuggerPath": "gdb",
       "setupCommands": [
