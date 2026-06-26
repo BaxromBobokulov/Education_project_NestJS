@@ -1,5 +1,5 @@
-import { ApiProperty } from "@nestjs/swagger"
-import { IsEmail, IsMobilePhone, IsString, Matches } from "class-validator"
+import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger"
+import { IsEmail, IsMobilePhone, IsOptional, IsString, Matches } from "class-validator"
 
 export class CreateTeacherDto {
     @ApiProperty()
@@ -28,4 +28,9 @@ export class CreateTeacherDto {
     @ApiProperty()
     @IsString()
     address: string
+
+    @ApiPropertyOptional()
+    @IsOptional()
+    @IsString()
+    groups?: string
 }

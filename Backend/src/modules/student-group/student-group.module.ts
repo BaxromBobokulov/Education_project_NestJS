@@ -1,14 +1,21 @@
 import { Module } from '@nestjs/common';
 import { StudentGroupService } from './student-group.service';
 import { StudentGroupController } from './student-group.controller';
-import { GroupsService } from '../groups/groups.service';
-import { StudentsService } from '../students/students.service';
-import { TeachersService } from '../teachers/teachers.service';
-import { CoursesService } from '../courses/courses.service';
-import { RoomsService } from '../rooms/rooms.service';
+import { GroupsModule } from '../groups/groups.module';
+import { StudentsModule } from '../students/students.module';
+import { TeachersModule } from '../teachers/teachers.module';
+import { CoursesModule } from '../courses/courses.module';
+import { RoomsModule } from '../rooms/rooms.module';
 
 @Module({
+  imports: [
+    GroupsModule,
+    StudentsModule,
+    TeachersModule,
+    CoursesModule,
+    RoomsModule,
+  ],
   controllers: [StudentGroupController],
-  providers: [StudentGroupService, StudentsService, GroupsService, TeachersService, CoursesService, RoomsService],
+  providers: [StudentGroupService],
 })
 export class StudentGroupModule {}

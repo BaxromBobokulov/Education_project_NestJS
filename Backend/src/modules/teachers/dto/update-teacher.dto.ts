@@ -36,4 +36,9 @@ export class UpdateTeacherDto extends PartialType(CreateTeacherDto) {
     @IsOptional()
     @IsString()
     address: string
+
+    @ApiPropertyOptional()
+    @IsOptional()
+    @IsString()
+    groups?: string
 }

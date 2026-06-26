@@ -1,65 +1,42 @@
-import { useState, useEffect, useRef } from "react";
-import {
-    Box,
-    Typography,
-    Button,
-    IconButton,
-    Drawer,
-    TextField,
-    InputBase,
-    Avatar,
-    Checkbox,
-    Table,
-    TableBody,
-    TableCell,
-    TableContainer,
-    TableHead,
-    TableRow,
-    Pagination,
-    CircularProgress,
-} from "@mui/material";
+import { useState, useEffect } from "react";
+import { Box, Typography, Button, IconButton, InputBase, Avatar,Checkbox,Table,TableBody,TableCell,TableContainer,TableHead,TableRow,Pagination,CircularProgress,} from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
-import CloseIcon from "@mui/icons-material/Close";
 import SearchIcon from "@mui/icons-material/Search";
 import FileDownloadIcon from "@mui/icons-material/FileDownload";
 import DeleteOutlinedIcon from "@mui/icons-material/DeleteOutlined";
 import FilterListIcon from "@mui/icons-material/FilterList";
 import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
-import CloudUploadIcon from "@mui/icons-material/CloudUpload";
 import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import axios from "axios";
 
-const GET_API  = "http://localhost:3000/students/all";
+import AddStudentDrawer from "../components/AddStudentDrawer";
+import DeleteConfirmDialog from "../components/DeleteConfirmDialog";
+import { useNotify } from "../components/NotificationContext";
+
+const GET_API = "http://localhost:3000/students/all";
 const POST_API = "http://localhost:3000/students";
 
 export default function Talabalar() {
-    const [drawerOpen,  setDrawerOpen]  = useState(false);
-    const [selected,    setSelected]    = useState([]);
-    const [searchQuery, setSearchQuery] = useState("");
-    const [page,        setPage]        = useState(1);
-    const [students,    setStudents]    = useState([]);
-    const [loading,     setLoading]     = useState(false);
-    const [saving,      setSaving]      = useState(false);
-    const fileInputRef = useRef(null);
+    const notify = useNotify();
 
-    // Form state
-    const [firstName,  setFirstName]  = useState("");
-    const [lastName,   setLastName]   = useState("");
-    const [phone,      setPhone]      = useState("");
-    const [email,      setEmail]      = useState("");
-    const [address,    setAddress]    = useState("");
-    const [password,   setPassword]   = useState("");
-    const [photo,      setPhoto]      = useState(null);
-    const [photoName,  setPhotoName]  = useState("");
+    const [drawerOpen, setDrawerOpen] = useState(false);
+    const [editingStudent, setEditingStudent] = useState(null);
+    const [deleteId, setDeleteId] = useState(null);
+    const [confirmOpen, setConfirmOpen] = useState(false);
+
+    const [selected, setSelected] = useState([]);
+    const [searchQuery, setSearchQuery] = useState("");
+    const [page, setPage] = useState(1);
+    const [students, setStudents] = useState([]);
+    const [loading, setLoading] = useState(false);
 
     const token = localStorage.getItem("token");
 
-    // ── GET students ──
     const fetchStudents = async () => {
         setLoading(true);
         try {
-            const res = await axios.get(GET_API, {
+            const res = await axios.get(`${GET_API}?_t=${new Date().getTime()}`, {
                 headers: { Authorization: `Bearer ${token}` },
             });
             setStudents(Array.isArray(res.data) ? res.data : []);
@@ -72,51 +49,40 @@ export default function Talabalar() {
 
     useEffect(() => { fetchStudents(); }, []);
 
-    // ── POST student ──
-    const addStudent = async () => {
-        setSaving(true);
-        try {
-            const formData = new FormData();
-            formData.append("first_name", firstName);
-            formData.append("last_name",  lastName);
-            formData.append("phone",      phone);
-            formData.append("email",      email);
-            formData.append("address",    address);
-            formData.append("password",   password);
-            if (photo) formData.append("photo", photo);
+    const handleOpenDrawer = (student = null) => {
+        setEditingStudent(student);
+        setDrawerOpen(true);
+    };
 
-            await axios.post(POST_API, formData, {
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                    "Content-Type": "multipart/form-data",
-                },
+    const confirmDelete = async () => {
+        try {
+            await axios.delete(`http://localhost:3000/students/${deleteId}`, { 
+                headers: { Authorization: `Bearer ${token}` }
             });
-            // reset form
-            setFirstName(""); setLastName(""); setPhone("");
-            setEmail("");     setAddress("");   setPassword("");
-            setPhoto(null);   setPhotoName("");
-            setDrawerOpen(false);
+            setStudents((prev) => prev.filter((s) => s.id !== deleteId));
+            setSelected((prev) => prev.filter((id) => id !== deleteId));
+            notify("Talaba o'chirildi!", "success");
             await fetchStudents();
         } catch (e) {
-            console.error("POST /students:", e);
+            notify("O'chirishda xatolik", "error");
         } finally {
-            setSaving(false);
+            setConfirmOpen(false);
+            setDeleteId(null);
         }
     };
 
     const allSelected = selected.length === students.length && students.length > 0;
-    const toggleAll   = () => setSelected(allSelected ? [] : students.map((s) => s.id));
-    const toggleOne   = (id) => setSelected((prev) =>
+    const toggleAll = () => setSelected(allSelected ? [] : students.map((s) => s.id));
+    const toggleOne = (id) => setSelected((prev) =>
         prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
     );
 
-    // search filter
     const filtered = students.filter((s) => {
         const q = searchQuery.toLowerCase();
         return (
             `${s.first_name} ${s.last_name}`.toLowerCase().includes(q) ||
-            (s.phone  || "").includes(q) ||
-            (s.email  || "").toLowerCase().includes(q)
+            (s.phone || "").includes(q) ||
+            (s.email || "").toLowerCase().includes(q)
         );
     });
 
@@ -127,7 +93,7 @@ export default function Talabalar() {
     return (
         <Box sx={{ bgcolor: "white", borderRadius: "12px", border: "1px solid #e2e8f0", overflow: "hidden" }}>
 
-            {/* ─── Page Header ─── */}
+            {/* Page Header */}
             <Box sx={{ p: 3, pb: 2, borderBottom: "1px solid #f1f5f9" }}>
                 <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", mb: 0.5 }}>
                     <Typography variant="h6" sx={{ fontWeight: 700, fontSize: 25, color: "#1e293b" }}>
@@ -148,7 +114,7 @@ export default function Talabalar() {
                         <Button
                             variant="contained"
                             startIcon={<AddIcon />}
-                            onClick={() => setDrawerOpen(true)}
+                            onClick={() => handleOpenDrawer()}
                             sx={{
                                 bgcolor: "#7c3aed", textTransform: "none", borderRadius: "8px",
                                 boxShadow: "none", px: 2, fontSize: 13, fontWeight: 600,
@@ -164,7 +130,7 @@ export default function Talabalar() {
                 </Typography>
             </Box>
 
-            {/* ─── Filters Row ─── */}
+            {/* Filters Row */}
             <Box sx={{ px: 3, py: 1.5, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 2, borderBottom: "1px solid #f1f5f9" }}>
                 <Box sx={{ display: "flex", gap: 1 }}>
                     <Button
@@ -207,7 +173,7 @@ export default function Talabalar() {
                 </Box>
             </Box>
 
-            {/* ─── Bulk Action Bar ─── */}
+            {/* Bulk Action Bar */}
             {selected.length > 0 && (
                 <Box sx={{ px: 3, py: 1, display: "flex", gap: 1.5, bgcolor: "#fafafa", borderBottom: "1px solid #f1f5f9" }}>
                     <Button
@@ -227,7 +193,7 @@ export default function Talabalar() {
                 </Box>
             )}
 
-            {/* ─── Table ─── */}
+            {/* Table */}
             {loading ? (
                 <Box sx={{ display: "flex", justifyContent: "center", py: 8 }}>
                     <CircularProgress sx={{ color: "#7c3aed" }} />
@@ -245,7 +211,7 @@ export default function Talabalar() {
                                         sx={{ "&.Mui-checked": { color: "#7c3aed" } }}
                                     />
                                 </TableCell>
-                                {["Nomi", "Telefon", "Email", "Manzil", "Status", "Yaratilgan", ""].map((h) => (
+                                {["Nomi", "Guruh", "Telefon raqami", "Email", "Status", "Yaratilgan", ""].map((h) => (
                                     <TableCell key={h} sx={{ fontSize: 12, fontWeight: 600, color: "#64748b", py: 1.5, borderBottom: "1px solid #e2e8f0", whiteSpace: "nowrap" }}>
                                         {h}
                                     </TableCell>
@@ -280,22 +246,49 @@ export default function Talabalar() {
                                     </TableCell>
                                     <TableCell sx={{ py: 1.5 }}>
                                         <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
-                                            <Avatar sx={{ width: 32, height: 32, bgcolor: "#ede9fe", color: "#7c3aed", fontSize: 13, fontWeight: 600 }}>
-                                                {student.first_name?.[0]?.toUpperCase()}
+                                            <Avatar
+                                                src={student.photo ? `http://localhost:3000/user/image/${student.photo}` : undefined}
+                                                sx={{ width: 32, height: 32, bgcolor: "#ede9fe", color: "#7c3aed", fontSize: 13, fontWeight: 700 }}
+                                            >
+                                                {!student.photo && student.first_name?.[0]?.toUpperCase()}
                                             </Avatar>
                                             <Typography sx={{ fontSize: 13, fontWeight: 500, color: "#1e293b" }}>
                                                 {student.first_name} {student.last_name}
                                             </Typography>
                                         </Box>
                                     </TableCell>
+                                    <TableCell sx={{ py: 1.5 }}>
+                                        {student.studentGroups?.length ? (
+                                            <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
+                                                {student.studentGroups.map((sg, idx) => (
+                                                    <Box
+                                                        key={idx}
+                                                        sx={{
+                                                            bgcolor: "#ffffff",
+                                                            color: "#000000",
+                                                            px: 1.5,
+                                                            py: 0.5,
+                                                            borderRadius: "6px",
+                                                            boxShadow: "0 2px 5px rgba(0,0,0,0.08)",
+                                                            fontSize: 12,
+                                                            fontWeight: 600,
+                                                        }}
+                                                    >
+                                                        {sg.groups?.name}
+                                                    </Box>
+                                                ))}
+                                            </Box>
+                                        ) : (
+                                            <Typography sx={{ fontSize: 13, color: "#94a3b8" }}>
+                                                Guruh mavjud emas
+                                            </Typography>
+                                        )}
+                                    </TableCell>
                                     <TableCell sx={{ fontSize: 13, color: "#1e293b", py: 1.5, whiteSpace: "nowrap" }}>
                                         {student.phone}
                                     </TableCell>
                                     <TableCell sx={{ fontSize: 13, color: "#64748b", py: 1.5 }}>
                                         {student.email}
-                                    </TableCell>
-                                    <TableCell sx={{ fontSize: 13, color: "#64748b", py: 1.5 }}>
-                                        {student.address}
                                     </TableCell>
                                     <TableCell sx={{ py: 1.5 }}>
                                         <Box sx={{
@@ -314,13 +307,13 @@ export default function Talabalar() {
                                     </TableCell>
                                     <TableCell sx={{ py: 1.5 }}>
                                         <Box sx={{ display: "flex", gap: 0.5 }}>
-                                            <IconButton size="small" sx={{ color: "#94a3b8", "&:hover": { color: "#7c3aed" } }}>
+                                            <IconButton size="small" sx={{ color: "#94a3b8", "&:hover": { color: "#7c3aed", bgcolor: "#f5f3ff" } }}>
                                                 <VisibilityOutlinedIcon sx={{ fontSize: 17 }} />
                                             </IconButton>
-                                            <IconButton size="small" sx={{ color: "#94a3b8", "&:hover": { color: "#ef4444" } }}>
+                                            <IconButton onClick={() => { setDeleteId(student.id); setConfirmOpen(true); }} size="small" sx={{ color: "#94a3b8", "&:hover": { color: "#ef4444", bgcolor: "#fef2f2" } }}>
                                                 <DeleteOutlinedIcon sx={{ fontSize: 17 }} />
                                             </IconButton>
-                                            <IconButton size="small" sx={{ color: "#94a3b8", "&:hover": { color: "#f59e0b" } }}>
+                                            <IconButton onClick={() => handleOpenDrawer(student)} size="small" sx={{ color: "#94a3b8", "&:hover": { color: "#f59e0b", bgcolor: "#fffbeb" } }}>
                                                 <EditOutlinedIcon sx={{ fontSize: 17 }} />
                                             </IconButton>
                                         </Box>
@@ -332,7 +325,7 @@ export default function Talabalar() {
                 </TableContainer>
             )}
 
-            {/* ─── Pagination ─── */}
+            {/* Pagination */}
             <Box sx={{ px: 3, py: 2, display: "flex", justifyContent: "space-between", alignItems: "center", borderTop: "1px solid #e2e8f0" }}>
                 <Button
                     variant="outlined"
@@ -356,172 +349,27 @@ export default function Talabalar() {
                 <Button
                     variant="outlined"
                     disabled={page === pageCount}
-                    onClick={() => setPage((p) => p + 1)}
+                    onClick={() => setPage((p) => p - 1)}
                     sx={{ borderColor: "#e2e8f0", color: "#475569", textTransform: "none", borderRadius: "8px", fontSize: 13 }}
                 >
                     Next →
                 </Button>
             </Box>
 
-            {/* ─── RIGHT DRAWER ─── */}
-            <Drawer
-                anchor="right"
+            {/* ALOHIDA AJRATILGAN DRAWER KOMPONENTI */}
+            <AddStudentDrawer
                 open={drawerOpen}
                 onClose={() => setDrawerOpen(false)}
-                PaperProps={{
-                    sx: { width: 420, display: "flex", flexDirection: "column", boxShadow: "-4px 0 24px rgba(0,0,0,0.10)" },
-                }}
-            >
-                {/* Drawer Header */}
-                <Box sx={{ p: 3, pb: 2, borderBottom: "1px solid #f1f5f9" }}>
-                    <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-                        <Box>
-                            <Typography sx={{ fontWeight: 700, fontSize: 18, color: "#1e293b", mb: 0.3 }}>
-                                Talaba qo'shish
-                            </Typography>
-                            <Typography sx={{ fontSize: 12.5, color: "#64748b" }}>
-                                Bu yerda siz yangi talaba qo'shishingiz mumkin.
-                            </Typography>
-                        </Box>
-                        <IconButton onClick={() => setDrawerOpen(false)} size="small" sx={{ color: "#64748b", mt: -0.5 }}>
-                            <CloseIcon fontSize="small" />
-                        </IconButton>
-                    </Box>
-                </Box>
-
-                {/* Drawer Body */}
-                <Box sx={{ flex: 1, overflowY: "auto", p: 3, display: "flex", flexDirection: "column", gap: 2.5 }}>
-
-                    {/* Ism */}
-                    <Box>
-                        <Typography sx={{ fontSize: 13, fontWeight: 500, color: "#1e293b", mb: 0.8 }}>
-                            Ism <span style={{ color: "#ef4444" }}>*</span>
-                        </Typography>
-                        <TextField
-                            fullWidth placeholder="Ismi" value={firstName}
-                            onChange={(e) => setFirstName(e.target.value)} size="small"
-                            sx={{ "& .MuiOutlinedInput-root": { borderRadius: "8px", fontSize: 14 } }}
-                        />
-                    </Box>
-
-                    {/* Familiya */}
-                    <Box>
-                        <Typography sx={{ fontSize: 13, fontWeight: 500, color: "#1e293b", mb: 0.8 }}>
-                            Familiya <span style={{ color: "#ef4444" }}>*</span>
-                        </Typography>
-                        <TextField
-                            fullWidth placeholder="Familiyasi" value={lastName}
-                            onChange={(e) => setLastName(e.target.value)} size="small"
-                            sx={{ "& .MuiOutlinedInput-root": { borderRadius: "8px", fontSize: 14 } }}
-                        />
-                    </Box>
-
-                    {/* Telefon */}
-                    <Box>
-                        <Typography sx={{ fontSize: 13, fontWeight: 500, color: "#1e293b", mb: 0.8 }}>
-                            Telefon raqam <span style={{ color: "#ef4444" }}>*</span>
-                        </Typography>
-                        <TextField
-                            fullWidth placeholder="941234512" value={phone}
-                            onChange={(e) => setPhone(e.target.value)} size="small"
-                            sx={{ "& .MuiOutlinedInput-root": { borderRadius: "8px", fontSize: 14 } }}
-                        />
-                    </Box>
-
-                    {/* Email */}
-                    <Box>
-                        <Typography sx={{ fontSize: 13, fontWeight: 500, color: "#1e293b", mb: 0.8 }}>
-                            Email <span style={{ color: "#ef4444" }}>*</span>
-                        </Typography>
-                        <TextField
-                            fullWidth placeholder="student@gmail.com" value={email}
-                            onChange={(e) => setEmail(e.target.value)} size="small"
-                            sx={{ "& .MuiOutlinedInput-root": { borderRadius: "8px", fontSize: 14 } }}
-                        />
-                    </Box>
-
-                    {/* Manzil */}
-                    <Box>
-                        <Typography sx={{ fontSize: 13, fontWeight: 500, color: "#1e293b", mb: 0.8 }}>
-                            Manzil
-                        </Typography>
-                        <TextField
-                            fullWidth placeholder="Manzilini kiriting" value={address}
-                            onChange={(e) => setAddress(e.target.value)} size="small"
-                            sx={{ "& .MuiOutlinedInput-root": { borderRadius: "8px", fontSize: 14 } }}
-                        />
-                    </Box>
-
-                    {/* Parol */}
-                    <Box>
-                        <Typography sx={{ fontSize: 13, fontWeight: 500, color: "#1e293b", mb: 0.8 }}>
-                            Parol <span style={{ color: "#ef4444" }}>*</span>
-                        </Typography>
-                        <TextField
-                            fullWidth type="password" placeholder="Parolni kiriting"
-                            value={password} onChange={(e) => setPassword(e.target.value)}
-                            size="small"
-                            sx={{ "& .MuiOutlinedInput-root": { borderRadius: "8px", fontSize: 14 } }}
-                        />
-                    </Box>
-
-                    {/* Photo */}
-                    <Box>
-                        <Typography sx={{ fontSize: 13, fontWeight: 500, color: "#1e293b", mb: 0.8 }}>
-                            Surati (rasm)
-                        </Typography>
-                        <input
-                            ref={fileInputRef} type="file" accept="image/*"
-                            style={{ display: "none" }}
-                            onChange={(e) => {
-                                const file = e.target.files[0];
-                                if (file) { setPhoto(file); setPhotoName(file.name); }
-                            }}
-                        />
-                        <Box
-                            onClick={() => fileInputRef.current.click()}
-                            sx={{
-                                border: "2px dashed #e2e8f0", borderRadius: "10px", p: 3,
-                                textAlign: "center", cursor: "pointer",
-                                "&:hover": { borderColor: "#a78bfa", bgcolor: "#faf5ff" },
-                                transition: "all 0.2s",
-                            }}
-                        >
-                            <CloudUploadIcon sx={{ fontSize: 32, color: "#94a3b8", mb: 1 }} />
-                            <Typography sx={{ fontSize: 13, color: "#475569" }}>
-                                <span style={{ color: "#7c3aed", fontWeight: 600 }}>Click to upload</span> or drag and drop
-                            </Typography>
-                            {photoName
-                                ? <Typography sx={{ fontSize: 12, color: "#7c3aed", mt: 0.5, fontWeight: 500 }}>{photoName}</Typography>
-                                : <Typography sx={{ fontSize: 11.5, color: "#94a3b8", mt: 0.3 }}>JPG or PNG (max. 2 mb)</Typography>
-                            }
-                        </Box>
-                    </Box>
-                </Box>
-
-                {/* Drawer Footer */}
-                <Box sx={{ p: 3, pt: 2, borderTop: "1px solid #e2e8f0", display: "flex", justifyContent: "flex-end", gap: 1.5, bgcolor: "white" }}>
-                    <Button
-                        variant="outlined"
-                        onClick={() => setDrawerOpen(false)}
-                        sx={{ borderColor: "#e2e8f0", color: "#1e293b", textTransform: "none", borderRadius: "8px", px: 3, py: 1, fontWeight: 500, fontSize: 13 }}
-                    >
-                        Bekor qilish
-                    </Button>
-                    <Button
-                        variant="contained"
-                        onClick={addStudent}
-                        disabled={saving || !firstName || !lastName || !phone || !email || !password}
-                        sx={{
-                            bgcolor: "#7c3aed", color: "white", textTransform: "none",
-                            borderRadius: "8px", px: 3, py: 1, fontWeight: 600, fontSize: 13,
-                            boxShadow: "none", "&:hover": { bgcolor: "#6d28d9", boxShadow: "none" },
-                        }}
-                    >
-                        {saving ? "Saqlanmoqda..." : "Saqlash"}
-                    </Button>
-                </Box>
-            </Drawer>
+                token={token}
+                apiEndpoint={POST_API}
+                onStudentAdded={fetchStudents}
+                student={editingStudent}
+            />
+            <DeleteConfirmDialog
+                open={confirmOpen}
+                onClose={() => setConfirmOpen(false)}
+                onConfirm={confirmDelete}
+            />
         </Box>
     );
 }

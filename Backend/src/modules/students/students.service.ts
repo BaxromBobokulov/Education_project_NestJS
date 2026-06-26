@@ -6,10 +6,11 @@ import * as bcrypt from "bcrypt"
 import { Role, Status } from '@prisma/client';
 import { filterDto } from './dto/filter-student.dto';
 import { serialize } from 'v8';
+import { EskizService } from 'src/common/service/sms.service';
 
 @Injectable()
 export class StudentsService {
-  constructor(private prisma: PrismaService) { }
+  constructor(private prisma: PrismaService, private smsService: EskizService) { }
   async create(payload: CreateStudentDto, filename: string) {
     const hash = await bcrypt.hash(payload.password, 10);
 
@@ -33,19 +34,32 @@ export class StudentsService {
       throw new ConflictException("Bu telefon raqam allaqachon mavjud")
     }
 
+    let groupIds: number[] = [];
+    if (payload.groups) {
+      try {
+        groupIds = JSON.parse(payload.groups);
+      } catch (e) { }
+    }
+
+    const { groups, ...restPayload } = payload;
+
     const CreatedStudent = await this.prisma.user.create({
       data: {
-        first_name: payload.first_name,
-        last_name: payload.last_name,
+        ...restPayload,
         password: hash,
         role: Role.STUDENT,
-        phone: payload.phone,
-        email: payload.email,
-        address: payload.address,
-        photo: filename
+        photo: filename,
+        ...(groupIds.length > 0 ? {
+          studentGroups: {
+            create: groupIds.map(groupId => ({ group_id: groupId }))
+          }
+        } : {})
       }
     })
 
+    await this.smsService.sendSms(payload.phone, `NajotEdu kabinetingiz https://najotedu.softwareengineer.uz/login.\n Login: ${payload.phone} Parol: ${payload.password}}`)
+
+    return CreatedStudent;
   }
 
   async findAll(search: filterDto) {
@@ -70,33 +84,74 @@ export class StudentsService {
     }
 
     const students = await this.prisma.user.findMany({
-      where:{
+      where: {
         role: Role.STUDENT,
         ...where
       },
       select: {
-        id:true,
-        first_name:true,
-        last_name:true,
-        role:true,
-        phone:true,
-        email:true,
-        address:true,
-        photo:true,
-        status:true,
-        created_at:true,
-        update_at:true
+        id: true,
+        first_name: true,
+        last_name: true,
+        role: true,
+        phone: true,
+        email: true,
+        address: true,
+        photo: true,
+        status: true,
+        created_at: true,
+        update_at: true,
+        studentGroups: {
+          select: {
+            groups: {
+              select: {
+                id: true,
+                name: true
+              }
+            }
+          }
+        }
       }
     })
     return students
   }
+
+  async getgroupsbyStudentId(id: number) {
+    const studentGroups = await this.prisma.studentGroup.findMany({
+      where: { user_id: id },
+      select: {
+        groups: {
+          select: {
+            id: true,
+            name: true,
+            start_time: true,
+            start_date: true,
+            teacherGroups: {
+              select: {
+                users: {
+                  select: {
+                    id: true,
+                    first_name: true,
+                    last_name: true
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    })
+
+    if (!studentGroups) throw new NotFoundException("Sizga tegishli guruhlar mavjud emas yoki student topilmadi")
+    return studentGroups
+  }
+
 
   async findArxiv() {
     const arxiv = await this.prisma.user.findMany({
       where: { status: Status.inactive }
     })
 
-    return arxiv 
+    return arxiv
   }
 
   async findOne(id: number) {
@@ -114,11 +169,26 @@ export class StudentsService {
       payload.password = await bcrypt.hash(payload.password, 10)
     }
 
+    let groupIds: number[] | undefined = undefined;
+    if (payload.groups) {
+      try {
+        groupIds = JSON.parse(payload.groups);
+      } catch (e) { }
+    }
+
+    const { groups, ...restPayload } = payload;
+
     return this.prisma.user.update({
       where: { id },
       data: {
-        ...payload,
+        ...restPayload,
         ...(photo ? { photo: photo } : {}),
+        ...(groupIds ? {
+          studentGroups: {
+            deleteMany: {},
+            create: groupIds.map(groupId => ({ group_id: groupId }))
+          }
+        } : {})
       }
     })
   }

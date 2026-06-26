@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Query } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Query, Request } from '@nestjs/common';
 import { GroupsService } from './groups.service';
 import { CreateGroupDto } from './dto/create-group.dto';
 import { UpdateGroupDto } from './dto/update-group.dto';
@@ -26,6 +26,50 @@ export class GroupsController {
   }
 
   @ApiOperation({
+    summary: `${Role.SUPERADMIN}, ${Role.ADMIN}, ${Role.TEACHER}, ${Role.ASSISTANT}`
+  })
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles(Role.SUPERADMIN, Role.ADMIN, Role.TEACHER, Role.ASSISTANT)
+  @ApiBearerAuth()
+  @Get(":id/teacher-groups")
+  getGroupsByTeacherId(@Param('id') id: string) {
+    return this.groupsService.getGroupsByTeacherId(+id);
+  }
+
+  @ApiOperation({
+    summary: `${Role.SUPERADMIN}, ${Role.ADMIN}, ${Role.TEACHER}, ${Role.ASSISTANT}`
+  })
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles(Role.SUPERADMIN, Role.ADMIN, Role.TEACHER, Role.ASSISTANT)
+  @ApiBearerAuth()
+  @Get(":id/students")
+  findStudentsByGroupId(@Param('id') id: string) {
+    return this.groupsService.findStudentsByGroupId(+id);
+  }
+
+  @ApiOperation({
+    summary: `${Role.SUPERADMIN}, ${Role.ADMIN}, ${Role.TEACHER}, ${Role.ASSISTANT}`
+  })
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles(Role.SUPERADMIN, Role.ADMIN, Role.TEACHER, Role.ASSISTANT)
+  @ApiBearerAuth()
+  @Get(":id/attendance-history")
+  getAttendanceHistory(@Param('id') id: string) {
+    return this.groupsService.getAttendanceHistory(+id);
+  }
+
+  @ApiOperation({
+    summary: `${Role.SUPERADMIN}, ${Role.ADMIN}, ${Role.TEACHER}, ${Role.ASSISTANT}`
+  })
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles(Role.SUPERADMIN, Role.ADMIN, Role.TEACHER, Role.ASSISTANT)
+  @ApiBearerAuth()
+  @Get(':id/attendance')
+  getAttendanceForDate(@Param('id') id: string, @Query('date') date: string) {
+    return this.groupsService.getAttendanceForDate(+id, date);
+  }
+
+  @ApiOperation({
     summary: `${Role.SUPERADMIN}, ${Role.ADMIN}`
   })
   @UseGuards(AuthGuard, RolesGuard)
@@ -33,9 +77,10 @@ export class GroupsController {
   @ApiBearerAuth()
   @Get("all")
   findAll(
-    @Query() search: filterGroupDto
+    @Query() search: filterGroupDto,
+    @Request() req: any
   ) {
-    return this.groupsService.findAll(search);
+    return this.groupsService.findAll(search, req.user);
   }
 
   @ApiOperation({
@@ -45,20 +90,64 @@ export class GroupsController {
   @Roles(Role.SUPERADMIN, Role.ADMIN)
   @ApiBearerAuth()
   @Get("arxiv")
-  findArxiv() {
-    return this.groupsService.findArxiv();
+  findArxiv(@Request() req: any) {
+    return this.groupsService.findArxiv(req.user);
+  }
+
+  @ApiOperation({
+    summary: `${Role.SUPERADMIN}, ${Role.ADMIN}, ${Role.TEACHER}, ${Role.ASSISTANT}`
+  })
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles(Role.SUPERADMIN, Role.ADMIN, Role.TEACHER, Role.ASSISTANT)
+  @ApiBearerAuth()
+  @Get(':id/student-data')
+  getGroupDataByStudentId(@Param('id') id: string, @Request() req: any) {
+    return this.groupsService.getGroupDataByStudentId(+id, req.user);
+  }
+
+  @ApiOperation({
+    summary: `${Role.SUPERADMIN}, ${Role.ADMIN}, ${Role.TEACHER}, ${Role.ASSISTANT}`
+  })
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles(Role.SUPERADMIN, Role.ADMIN, Role.TEACHER, Role.ASSISTANT)
+  @ApiBearerAuth()
+  @Get(':id')
+  findOne(@Param('id') id: string, @Request() req: any) {
+    return this.groupsService.findOne(+id, req.user);
+  }
+
+  @ApiOperation({
+    summary: `${Role.SUPERADMIN}, ${Role.ADMIN}, ${Role.TEACHER}, ${Role.ASSISTANT}, ${Role.STUDENT}`
+  })
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles(Role.SUPERADMIN, Role.ADMIN, Role.TEACHER, Role.ASSISTANT, Role.STUDENT)
+  @ApiBearerAuth()
+  @Get(':id/lessons')
+  getLessonsByGroupId(@Param('id') id: string, @Request() req: any) {
+    return this.groupsService.getLessonsByGroupId(+id, req.user);
   }
 
 
   @ApiOperation({
-    summary: `${Role.SUPERADMIN}, ${Role.ADMIN}`
+    summary: `${Role.SUPERADMIN}, ${Role.ADMIN}, ${Role.TEACHER}, ${Role.ASSISTANT}`
   })
   @UseGuards(AuthGuard, RolesGuard)
-  @Roles(Role.SUPERADMIN, Role.ADMIN)
+  @Roles(Role.SUPERADMIN, Role.ADMIN, Role.TEACHER, Role.ASSISTANT)
   @ApiBearerAuth()
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.groupsService.findOne(+id);
+  @Get(':id/parameters')
+  getParameters(@Param('id') id: string, @Request() req: any) {
+    return this.groupsService.getParameters(+id, req.user);
+  }
+
+  @ApiOperation({
+    summary: `${Role.SUPERADMIN}, ${Role.ADMIN}, ${Role.TEACHER}, ${Role.ASSISTANT}`
+  })
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles(Role.SUPERADMIN, Role.ADMIN, Role.TEACHER, Role.ASSISTANT)
+  @ApiBearerAuth()
+  @Get(':id/schedule')
+  getSchedule(@Param('id') id: string) {
+    return this.groupsService.getSchedule(+id);
   }
 
   @ApiOperation({

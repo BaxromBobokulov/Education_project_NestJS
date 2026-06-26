@@ -21,11 +21,6 @@ export class UpdateGroupDto extends PartialType(CreateGroupDto) {
     @ApiPropertyOptional()
     @IsOptional()
     @IsNumber()
-    teacher_id: number
-
-    @ApiPropertyOptional()
-    @IsOptional()
-    @IsNumber()
     room_id: number
 
     @ApiPropertyOptional()

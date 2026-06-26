@@ -1,319 +1,180 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import {
-    Box,
-    Typography,
-    Button,
-    IconButton,
-    Drawer,
-    TextField,
-    InputBase,
-    Avatar,
-    Checkbox,
-    Table,
-    TableBody,
-    TableCell,
-    TableContainer,
-    TableHead,
-    TableRow,
-    Pagination,
+    Box, Typography, Button, IconButton, InputBase, Avatar, Checkbox,
+    Table, TableBody, TableCell, TableContainer, TableHead, TableRow
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
-import CloseIcon from "@mui/icons-material/Close";
 import SearchIcon from "@mui/icons-material/Search";
 import FileDownloadIcon from "@mui/icons-material/FileDownload";
 import DeleteOutlinedIcon from "@mui/icons-material/DeleteOutlined";
 import FilterListIcon from "@mui/icons-material/FilterList";
-import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
-import CloudUploadIcon from "@mui/icons-material/CloudUpload";
-import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
 import ReplayIcon from "@mui/icons-material/Replay";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
-import axios from "axios";
 
-const GET_API = "http://localhost:3000/teachers/all";
-const POST_API = "http://localhost:3000/teachers";
+import axios from "axios";
+import { useNotify } from "../components/NotificationContext";
+import DeleteConfirmDialog from "../components/DeleteConfirmDialog";
+import TeacherDrawer from "../components/TeacherDrawer"; // Yangi komponentni chaqirish
+
+const API_BASE = "http://localhost:3000/teachers";
 
 export default function Oqituvchilar() {
-    const [drawerOpen,  setDrawerOpen]  = useState(false);
-    const [selected,    setSelected]    = useState([]);
+    const notify = useNotify();
+
+    // Page states
     const [searchQuery, setSearchQuery] = useState("");
-    const [page,        setPage]        = useState(1);
-    const [teachers,    setTeachers]    = useState([]);
-    const [loading,     setLoading]     = useState(false);
-    const fileInputRef = useRef(null);
+    const [teachers, setTeachers] = useState([]);
+    const [selected, setSelected] = useState([]);
 
-    // Form state
-    const [firstName,   setFirstName]   = useState("");
-    const [lastName,    setLastName]    = useState("");
-    const [phone,       setPhone]       = useState("");
-    const [email,       setEmail]       = useState("");
-    const [address,     setAddress]     = useState("");
-    const [password,    setPassword]    = useState("");
-    const [photo,       setPhoto]       = useState(null);
-    const [photoName,   setPhotoName]   = useState("");
+    // Drawer states
+    const [drawerOpen, setDrawerOpen] = useState(false);
+    const [editingTeacher, setEditingTeacher] = useState(null);
 
-    const token = localStorage.getItem("token");
+    // Delete states
+    const [deleteId, setDeleteId] = useState(null);
+    const [confirmOpen, setConfirmOpen] = useState(false);
+
+    const headers = { Authorization: `Bearer ${localStorage.getItem("token")}` };
 
     const getTeachers = async () => {
         try {
-            const res = await axios.get(GET_API, {
-                headers: { Authorization: `Bearer ${token}` },
-            });
+            const res = await axios.get(`${API_BASE}/all?_t=${new Date().getTime()}`, { headers });
             setTeachers(res.data);
         } catch (e) {
-            console.error(e);
+            console.error(e); 
         }
     };
 
     useEffect(() => { getTeachers(); }, []);
 
-    const addTeacher = async () => {
-        setLoading(true);
-        try {
-            const formData = new FormData();
-            formData.append("first_name", firstName);
-            formData.append("last_name", lastName);
-            formData.append("phone", phone);
-            formData.append("email", email);
-            formData.append("address", address);
-            formData.append("password", password);
-            if (photo) formData.append("photo", photo);
+    const handleOpenDrawer = (teacher = null) => {
+        setEditingTeacher(teacher);
+        setDrawerOpen(true);
+    };
 
-            await axios.post(POST_API, formData, {
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                    "Content-Type": "multipart/form-data",
-                },
-            });
+    const confirmDelete = async () => {
+        try {
+            await axios.delete(`${API_BASE}/${deleteId}`, { headers });
+            setTeachers((prev) => prev.filter((t) => t.id !== deleteId));
+            setSelected((prev) => prev.filter((id) => id !== deleteId));
+            notify("O'qituvchi o'chirildi!", "success");
             await getTeachers();
-            setDrawerOpen(false);
-            setFirstName(""); setLastName(""); setPhone("");
-            setEmail(""); setAddress(""); setPassword("");
-            setPhoto(null); setPhotoName("");
         } catch (e) {
-            console.error(e);
+            notify("O'chirishda xatolik", "error");
         } finally {
-            setLoading(false);
+            setConfirmOpen(false);
+            setDeleteId(null);
         }
     };
 
-    const allSelected = selected.length === teachers.length && teachers.length > 0;
-    const toggleAll = () => setSelected(allSelected ? [] : teachers.map((t) => t.id));
+    const toggleAll = () => setSelected(selected.length === teachers.length && teachers.length > 0 ? [] : teachers.map((t) => t.id));
     const toggleOne = (id) => setSelected((prev) => prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]);
 
     return (
         <Box sx={{ bgcolor: "white", borderRadius: "12px", border: "1px solid #e2e8f0", overflow: "hidden" }}>
 
-            {/* ─── Page Header ─── */}
+            {/* Page Header */}
             <Box sx={{ p: 3, pb: 2, borderBottom: "1px solid #f1f5f9" }}>
                 <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", mb: 0.5 }}>
                     <Typography variant="h6" sx={{ fontWeight: 700, fontSize: 25, color: "#1e293b" }}>
                         O'qituvchilar
                     </Typography>
                     <Box sx={{ display: "flex", gap: 1.5 }}>
-                        <Button
-                            variant="outlined"
-                            startIcon={<FileDownloadIcon />}
-                            sx={{
-                                borderColor: "#e2e8f0",
-                                color: "#475569",
-                                textTransform: "none",
-                                borderRadius: "8px",
-                                fontSize: 13,
-                                fontWeight: 500,
-                                px: 2,
-                                "&:hover": { borderColor: "#cbd5e1", bgcolor: "#f8fafc" },
-                            }}
-                        >
+                        <Button variant="outlined" startIcon={<FileDownloadIcon />} sx={{ borderColor: "#e2e8f0", color: "#475569", textTransform: "none", borderRadius: "8px", fontSize: 13, fontWeight: 500 }}>
                             Export
                         </Button>
-                        <Button
-                            variant="contained"
-                            startIcon={<AddIcon />}
-                            onClick={() => setDrawerOpen(true)}
-                            sx={{
-                                bgcolor: "#7c3aed",
-                                textTransform: "none",
-                                borderRadius: "8px",
-                                boxShadow: "none",
-                                px: 2,
-                                fontSize: 13,
-                                fontWeight: 600,
-                                "&:hover": { bgcolor: "#6d28d9", boxShadow: "none" },
-                            }}
-                        >
+                        <Button variant="contained" startIcon={<AddIcon />} onClick={() => handleOpenDrawer()} sx={{ bgcolor: "#7c3aed", textTransform: "none", borderRadius: "8px", fontSize: 13, fontWeight: 700, "&:hover": { bgcolor: "#6d28d9" } }}>
                             O'qituvchi qo'shish
                         </Button>
                     </Box>
                 </Box>
-                <Typography sx={{ fontSize: 13, color: "#64748b" }}>
-                    Ushbu sahifada siz o'qituvchilar ro'yxatini va ularning ma'lumotlarini topasiz. Har bir o'qituvchining ismi, fanlari va aloqa ma'lumotlari keltirilgan.
-                </Typography>
             </Box>
 
-            {/* ─── Filters Row ─── */}
+            {/* Filters Row */}
             <Box sx={{ px: 3, py: 1.5, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 2, borderBottom: "1px solid #f1f5f9" }}>
                 <Box sx={{ display: "flex", gap: 1 }}>
-                    <Button
-                        variant="outlined"
-                        startIcon={<FilterListIcon />}
-                        sx={{
-                            borderColor: "#e2e8f0",
-                            color: "#475569",
-                            textTransform: "none",
-                            borderRadius: "8px",
-                            fontSize: 13,
-                            fontWeight: 500,
-                            px: 1.5,
-                            "&:hover": { bgcolor: "#f8fafc" },
-                        }}
-                    >
-                        Filters
-                    </Button>
+                    <Button variant="outlined" startIcon={<FilterListIcon />} sx={{ borderColor: "#e2e8f0", color: "#475569", textTransform: "none", borderRadius: "8px", fontSize: 13, fontWeight: 500 }}>Filters</Button>
+                    <IconButton size="small" onClick={getTeachers} sx={{ color: "#64748b" }}><ReplayIcon sx={{ fontSize: 20 }} /></IconButton>
                 </Box>
-                <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
-                    <Box
-                        sx={{
-                            display: "flex",
-                            alignItems: "center",
-                            bgcolor: "#f8fafc",
-                            border: "1px solid #e2e8f0",
-                            borderRadius: "8px",
-                            px: 1.5,
-                            py: 0.5,
-                            gap: 1,
-                            width: 200,
-                        }}
-                    >
-                        <SearchIcon sx={{ fontSize: 18, color: "#94a3b8" }} />
-                        <InputBase
-                            placeholder="Search"
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            sx={{ fontSize: 13, color: "#1e293b", flex: 1 }}
-                        />
-                    </Box>
-                    <Button
-                        variant="outlined"
-                        startIcon={<CalendarMonthIcon sx={{ fontSize: 16 }} />}
-                        sx={{
-                            borderColor: "#e2e8f0",
-                            color: "#475569",
-                            textTransform: "none",
-                            borderRadius: "8px",
-                            fontSize: 12,
-                            px: 1.5,
-                            minWidth: "auto",
-                            "&:hover": { bgcolor: "#f8fafc" },
-                        }}
-                    >
-                        Arxiv
-                    </Button>
+                <Box sx={{ display: "flex", alignItems: "center", bgcolor: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: "8px", px: 1.5, py: 0.5, gap: 1, width: 200 }}>
+                    <SearchIcon sx={{ fontSize: 18, color: "#94a3b8" }} />
+                    <InputBase placeholder="Search" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} sx={{ fontSize: 13, color: "#1e293b", flex: 1 }} />
                 </Box>
             </Box>
 
-            {/* ─── Bulk Action Bar (visible if items selected) ─── */}
+            {/* Bulk Actions */}
             {selected.length > 0 && (
-                <Box sx={{ px: 3, py: 1, display: "flex", gap: 1.5, bgcolor: "#fafafa", borderBottom: "1px solid #f1f5f9" }}>
-                    <Button
-                        variant="outlined"
-                        startIcon={<FileDownloadIcon sx={{ fontSize: 15 }} />}
-                        sx={{ borderColor: "#e2e8f0", color: "#475569", textTransform: "none", borderRadius: "8px", fontSize: 12, px: 1.5, py: 0.5 }}
-                    >
-                        Export
-                    </Button>
-                    <Button
-                        variant="outlined"
-                        startIcon={<DeleteOutlinedIcon sx={{ fontSize: 15 }} />}
-                        sx={{ borderColor: "#fca5a5", color: "#ef4444", textTransform: "none", borderRadius: "8px", fontSize: 12, px: 1.5, py: 0.5, "&:hover": { bgcolor: "#fef2f2" } }}
-                    >
-                        Delete
+                <Box sx={{ px: 3, py: 1, bgcolor: "#fafafa", borderBottom: "1px solid #f1f5f9" }}>
+                    <Button variant="outlined" startIcon={<DeleteOutlinedIcon sx={{ fontSize: 15 }} />} sx={{ borderColor: "#fca5a5", color: "#ef4444", textTransform: "none", borderRadius: "8px", fontSize: 12, px: 1.5, py: 0.5 }}>
+                        Delete Selected
                     </Button>
                 </Box>
             )}
 
-            {/* ─── Table ─── */}
+            {/* Table */}
             <TableContainer>
                 <Table>
                     <TableHead>
                         <TableRow sx={{ bgcolor: "#fafafa" }}>
                             <TableCell padding="checkbox" sx={{ pl: 3 }}>
-                                <Checkbox
-                                    size="small"
-                                    checked={allSelected}
-                                    onChange={toggleAll}
-                                    sx={{ "&.Mui-checked": { color: "#7c3aed" } }}
-                                />
+                                <Checkbox size="small" checked={selected.length === teachers.length && teachers.length > 0} onChange={toggleAll} sx={{ "&.Mui-checked": { color: "#7c3aed" } }} />
                             </TableCell>
-                            {[" Nomi", "Telefon", "Email", "Manzil", "Status", "Yaratilgan", ""].map((h) => (
-                                <TableCell key={h} sx={{ fontSize: 12, fontWeight: 600, color: "#64748b", py: 1.5, borderBottom: "1px solid #e2e8f0", whiteSpace: "nowrap" }}>
-                                    {h}
-                                </TableCell>
+                            {["Nomi", "Guruh", "Telefon", "Email", "Yaratilgan sanasi", "Amallar"].map((h) => (
+                                <TableCell key={h} sx={{ fontSize: 12, fontWeight: 700, color: "#64748b", py: 1.5, borderBottom: "1px solid #e2e8f0", whiteSpace: "nowrap" }}>{h}</TableCell>
                             ))}
                         </TableRow>
                     </TableHead>
                     <TableBody>
-                        {teachers.map((teacher) => (
-                            <TableRow
-                                key={teacher.id}
-                                hover
-                                selected={selected.includes(teacher.id)}
-                                sx={{
-                                    "&:hover": { bgcolor: "#fafaff" },
-                                    "&.Mui-selected": { bgcolor: "#f5f3ff" },
-                                    "&.Mui-selected:hover": { bgcolor: "#f0ebff" },
-                                }}
-                            >
+                        {teachers.filter(t => (t.first_name + ' ' + t.last_name).toLowerCase().includes(searchQuery.toLowerCase())).map((teacher) => (
+                            <TableRow key={teacher.id} hover selected={selected.includes(teacher.id)} sx={{ "&.Mui-selected": { bgcolor: "#f5f3ff" } }}>
                                 <TableCell padding="checkbox" sx={{ pl: 3 }}>
-                                    <Checkbox
-                                        size="small"
-                                        checked={selected.includes(teacher.id)}
-                                        onChange={() => toggleOne(teacher.id)}
-                                        sx={{ "&.Mui-checked": { color: "#7c3aed" } }}
-                                    />
+                                    <Checkbox size="small" checked={selected.includes(teacher.id)} onChange={() => toggleOne(teacher.id)} sx={{ "&.Mui-checked": { color: "#7c3aed" } }} />
                                 </TableCell>
                                 <TableCell sx={{ py: 1.5 }}>
                                     <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
-                                        <Avatar sx={{ width: 32, height: 32, bgcolor: "#ede9fe", color: "#7c3aed", fontSize: 13, fontWeight: 600 }}>
-                                            {teacher.first_name?.[0]?.toUpperCase()}
+                                        <Avatar
+                                            src={teacher.photo ? `http://localhost:3000/user/image/${teacher.photo}` : undefined}
+                                            sx={{ width: 32, height: 32, bgcolor: "#ede9fe", color: "#7c3aed", fontSize: 13, fontWeight: 700 }}
+                                        >
+                                            {!teacher.photo && teacher.first_name?.[0]?.toUpperCase()}
                                         </Avatar>
-                                        <Typography sx={{ fontSize: 13, fontWeight: 500, color: "#1e293b" }}>
-                                            {teacher.first_name} {teacher.last_name}
-                                        </Typography>
+                                        <Typography sx={{ fontSize: 13, fontWeight: 600, color: "#1e293b" }}>{teacher.first_name} {teacher.last_name}</Typography>
                                     </Box>
-                                </TableCell>
-                                <TableCell sx={{ fontSize: 13, color: "#1e293b", py: 1.5, whiteSpace: "nowrap" }}>
-                                    {teacher.phone}
-                                </TableCell>
-                                <TableCell sx={{ fontSize: 13, color: "#64748b", py: 1.5 }}>
-                                    {teacher.email}
-                                </TableCell>
-                                <TableCell sx={{ fontSize: 13, color: "#64748b", py: 1.5 }}>
-                                    {teacher.address}
                                 </TableCell>
                                 <TableCell sx={{ py: 1.5 }}>
-                                    <Box sx={{
-                                        display: "inline-flex", alignItems: "center", gap: 0.5,
-                                        px: 1.2, py: 0.3, borderRadius: "20px",
-                                        bgcolor: teacher.status === "active" ? "#dcfce7" : "#f1f5f9",
-                                        color: teacher.status === "active" ? "#16a34a" : "#64748b",
-                                        fontSize: 11, fontWeight: 600,
-                                    }}>
-                                        <Box sx={{ width: 6, height: 6, borderRadius: "50%", bgcolor: teacher.status === "active" ? "#16a34a" : "#94a3b8" }} />
-                                        {teacher.status}
-                                    </Box>
+                                    {teacher.teacherGroups?.length ? (
+                                        <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
+                                            {teacher.teacherGroups.map((tg, idx) => (
+                                                <Box
+                                                    key={idx}
+                                                    sx={{
+                                                        bgcolor: "#ffffff",
+                                                        color: "#000000",
+                                                        px: 1.5,
+                                                        py: 0.5,
+                                                        borderRadius: "6px",
+                                                        boxShadow: "0 2px 5px rgba(0,0,0,0.08)",
+                                                        fontSize: 12,
+                                                        fontWeight: 600,
+                                                    }}
+                                                >
+                                                    {tg.groups?.name}
+                                                </Box>
+                                            ))}
+                                        </Box>
+                                    ) : (
+                                        <Typography sx={{ fontSize: 13, color: "#94a3b8" }}>
+                                            Guruh mavjud emas
+                                        </Typography>
+                                    )}
                                 </TableCell>
-                                <TableCell sx={{ fontSize: 13, color: "#64748b", py: 1.5, whiteSpace: "nowrap" }}>
-                                    {teacher.created_at ? new Date(teacher.created_at).toLocaleDateString("uz-UZ") : "—"}
-                                </TableCell>
+                                <TableCell sx={{ fontSize: 13, color: "#64748b", py: 1.5 }}>{teacher.phone}</TableCell>
+                                <TableCell sx={{ fontSize: 13, color: "#64748b", py: 1.5 }}>{teacher.email}</TableCell>
+                                <TableCell sx={{ py: 1.5 }}>{teacher.created_at.slice(0, 10)}</TableCell>
                                 <TableCell sx={{ py: 1.5 }}>
                                     <Box sx={{ display: "flex", gap: 0.5 }}>
-                                        <IconButton size="small" sx={{ color: "#94a3b8", "&:hover": { color: "#ef4444" } }}>
-                                            <DeleteOutlinedIcon sx={{ fontSize: 17 }} />
-                                        </IconButton>
-                                        <IconButton size="small" sx={{ color: "#94a3b8", "&:hover": { color: "#f59e0b" } }}>
-                                            <EditOutlinedIcon sx={{ fontSize: 17 }} />
-                                        </IconButton>
+                                        <IconButton onClick={() => handleOpenDrawer(teacher)} size="small" sx={{ color: "#94a3b8", "&:hover": { color: "#7c3aed", bgcolor: "#f5f3ff" } }}><EditOutlinedIcon sx={{ fontSize: 17 }} /></IconButton>
+                                        <IconButton onClick={() => { setDeleteId(teacher.id); setConfirmOpen(true); }} size="small" sx={{ color: "#94a3b8", "&:hover": { color: "#ef4444", bgcolor: "#fef2f2" } }}><DeleteOutlinedIcon sx={{ fontSize: 17 }} /></IconButton>
                                     </Box>
                                 </TableCell>
                             </TableRow>
@@ -322,224 +183,9 @@ export default function Oqituvchilar() {
                 </Table>
             </TableContainer>
 
-            {/* ─── Pagination ─── */}
-            <Box sx={{ px: 3, py: 2, display: "flex", justifyContent: "space-between", alignItems: "center", borderTop: "1px solid #e2e8f0" }}>
-                <Button
-                    variant="outlined"
-                    sx={{ borderColor: "#e2e8f0", color: "#475569", textTransform: "none", borderRadius: "8px", fontSize: 13 }}
-                >
-                    ← Previous
-                </Button>
-                <Pagination
-                    count={10}
-                    page={page}
-                    onChange={(_, val) => setPage(val)}
-                    shape="rounded"
-                    size="small"
-                    sx={{
-                        "& .MuiPaginationItem-root": { borderRadius: "8px", fontSize: 13 },
-                        "& .Mui-selected": { bgcolor: "#7c3aed !important", color: "white" },
-                    }}
-                />
-                <Button
-                    variant="outlined"
-                    sx={{ borderColor: "#e2e8f0", color: "#475569", textTransform: "none", borderRadius: "8px", fontSize: 13 }}
-                >
-                    Next →
-                </Button>
-            </Box>
-
-            {/* ─── RIGHT DRAWER: O'qituvchi qo'shish ─── */}
-            <Drawer
-                anchor="right"
-                open={drawerOpen}
-                onClose={() => setDrawerOpen(false)}
-                PaperProps={{
-                    sx: {
-                        width: 420,
-                        display: "flex",
-                        flexDirection: "column",
-                        boxShadow: "-4px 0 24px rgba(0,0,0,0.10)",
-                    },
-                }}
-            >
-                {/* Drawer Header */}
-                <Box sx={{ p: 3, pb: 2, borderBottom: "1px solid #f1f5f9" }}>
-                    <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-                        <Box>
-                            <Typography sx={{ fontWeight: 700, fontSize: 18, color: "#1e293b", mb: 0.3 }}>
-                                O'qituvchi qoshish
-                            </Typography>
-                            <Typography sx={{ fontSize: 12.5, color: "#64748b" }}>
-                                Bu yerda siz yangi o'qituvchi qo'shishingiz mumkin.
-                            </Typography>
-                        </Box>
-                        <IconButton onClick={() => setDrawerOpen(false)} size="small" sx={{ color: "#64748b", mt: -0.5 }}>
-                            <CloseIcon fontSize="small" />
-                        </IconButton>
-                    </Box>
-                </Box>
-
-                {/* Drawer Body */}
-                <Box sx={{ flex: 1, overflowY: "auto", p: 3, display: "flex", flexDirection: "column", gap: 2.5 }}>
-
-                    {/* Ism */}
-                    <Box>
-                        <Typography sx={{ fontSize: 13, fontWeight: 500, color: "#1e293b", mb: 0.8 }}>
-                            Ism <span style={{ color: "#ef4444" }}>*</span>
-                        </Typography>
-                        <TextField
-                            fullWidth
-                            placeholder="Ismi"
-                            value={firstName}
-                            onChange={(e) => setFirstName(e.target.value)}
-                            size="small"
-                            sx={{ "& .MuiOutlinedInput-root": { borderRadius: "8px", fontSize: 14 } }}
-                        />
-                    </Box>
-
-                    {/* Familiya */}
-                    <Box>
-                        <Typography sx={{ fontSize: 13, fontWeight: 500, color: "#1e293b", mb: 0.8 }}>
-                            Familiya <span style={{ color: "#ef4444" }}>*</span>
-                        </Typography>
-                        <TextField
-                            fullWidth
-                            placeholder="Familiyasi"
-                            value={lastName}
-                            onChange={(e) => setLastName(e.target.value)}
-                            size="small"
-                            sx={{ "& .MuiOutlinedInput-root": { borderRadius: "8px", fontSize: 14 } }}
-                        />
-                    </Box>
-
-                    {/* Telefon */}
-                    <Box>
-                        <Typography sx={{ fontSize: 13, fontWeight: 500, color: "#1e293b", mb: 0.8 }}>
-                            Telefon raqam <span style={{ color: "#ef4444" }}>*</span>
-                        </Typography>
-                        <TextField
-                            fullWidth
-                            placeholder="941234512"
-                            value={phone}
-                            onChange={(e) => setPhone(e.target.value)}
-                            size="small"
-                            sx={{ "& .MuiOutlinedInput-root": { borderRadius: "8px", fontSize: 14 } }}
-                        />
-                    </Box>
-
-                    {/* Email */}
-                    <Box>
-                        <Typography sx={{ fontSize: 13, fontWeight: 500, color: "#1e293b", mb: 0.8 }}>
-                            Email <span style={{ color: "#ef4444" }}>*</span>
-                        </Typography>
-                        <TextField
-                            fullWidth
-                            placeholder="teacher@gmail.com"
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                            size="small"
-                            sx={{ "& .MuiOutlinedInput-root": { borderRadius: "8px", fontSize: 14 } }}
-                        />
-                    </Box>
-
-                    {/* Manzil */}
-                    <Box>
-                        <Typography sx={{ fontSize: 13, fontWeight: 500, color: "#1e293b", mb: 0.8 }}>
-                            Manzil
-                        </Typography>
-                        <TextField
-                            fullWidth
-                            placeholder="Manzilini kiriting"
-                            value={address}
-                            onChange={(e) => setAddress(e.target.value)}
-                            size="small"
-                            sx={{ "& .MuiOutlinedInput-root": { borderRadius: "8px", fontSize: 14 } }}
-                        />
-                    </Box>
-
-                    {/* Parol */}
-                    <Box>
-                        <Typography sx={{ fontSize: 13, fontWeight: 500, color: "#1e293b", mb: 0.8 }}>
-                            Parol <span style={{ color: "#ef4444" }}>*</span>
-                        </Typography>
-                        <TextField
-                            fullWidth
-                            type="password"
-                            placeholder="Parolni kiriting"
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            size="small"
-                            sx={{ "& .MuiOutlinedInput-root": { borderRadius: "8px", fontSize: 14 } }}
-                        />
-                    </Box>
-
-                    {/* Surati */}
-                    <Box>
-                        <Typography sx={{ fontSize: 13, fontWeight: 500, color: "#1e293b", mb: 0.8 }}>
-                            Surati (rasm)
-                        </Typography>
-                        <input
-                            ref={fileInputRef}
-                            type="file"
-                            accept="image/*"
-                            style={{ display: "none" }}
-                            onChange={(e) => {
-                                const file = e.target.files[0];
-                                if (file) { setPhoto(file); setPhotoName(file.name); }
-                            }}
-                        />
-                        <Box
-                            onClick={() => fileInputRef.current.click()}
-                            sx={{
-                                border: "2px dashed #e2e8f0",
-                                borderRadius: "10px",
-                                p: 3,
-                                textAlign: "center",
-                                cursor: "pointer",
-                                "&:hover": { borderColor: "#a78bfa", bgcolor: "#faf5ff" },
-                                transition: "all 0.2s",
-                            }}
-                        >
-                            <CloudUploadIcon sx={{ fontSize: 32, color: "#94a3b8", mb: 1 }} />
-                            <Typography sx={{ fontSize: 13, color: "#475569" }}>
-                                <span style={{ color: "#7c3aed", fontWeight: 600 }}>Click to upload</span> or drag and drop
-                            </Typography>
-                            {photoName
-                                ? <Typography sx={{ fontSize: 12, color: "#7c3aed", mt: 0.5, fontWeight: 500 }}>{photoName}</Typography>
-                                : <Typography sx={{ fontSize: 11.5, color: "#94a3b8", mt: 0.3 }}>JPG or PNG (max. 800x800px)</Typography>
-                            }
-                        </Box>
-                    </Box>
-
-                </Box>
-
-                {/* Drawer Footer */}
-                <Box sx={{ p: 3, pt: 2, borderTop: "1px solid #e2e8f0", display: "flex", justifyContent: "flex-end", gap: 1.5, bgcolor: "white" }}>
-                    <Button
-                        variant="outlined"
-                        onClick={() => setDrawerOpen(false)}
-                        sx={{
-                            borderColor: "#e2e8f0", color: "#1e293b", textTransform: "none",
-                            borderRadius: "8px", px: 3, py: 1, fontWeight: 500, fontSize: 13,
-                        }}
-                    >
-                        Bekor qilish
-                    </Button>
-                    <Button
-                        variant="contained"
-                        onClick={addTeacher}
-                        disabled={loading}
-                        sx={{
-                            bgcolor: "#7c3aed", color: "white", textTransform: "none",
-                            borderRadius: "8px", px: 3, py: 1, fontWeight: 600, fontSize: 13,
-                            boxShadow: "none", "&:hover": { bgcolor: "#6d28d9", boxShadow: "none" },
-                        }}
-                    >
-                        {loading ? "Saqlanmoqda..." : "Saqlash"}
-                    </Button>
-                </Box>
-            </Drawer>
+            {/* Komponent chaqiruvi */}
+            <TeacherDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} teacher={editingTeacher} onSuccess={getTeachers} />
+            <DeleteConfirmDialog open={confirmOpen} onClose={() => setConfirmOpen(false)} onConfirm={confirmDelete} />
         </Box>
     );
 }

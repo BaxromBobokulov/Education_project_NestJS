@@ -19,20 +19,23 @@ export class StudentGroupService {
     await this.studentService.findOne(payload.user_id)
     const group = await this.groupService.findOne(payload.group_id)
 
-    const chechDuplicate = await this.prisma.studentGroup.findFirst({
+    // BUG FIX: user_id + group_id kombinatsiyasini tekshirish kerak edi
+    const checkDuplicate = await this.prisma.studentGroup.findFirst({
       where: {
+        user_id: payload.user_id,
         group_id: payload.group_id,
         status: Status.active
       }
     })
 
-    if (chechDuplicate) {
-      throw new ConflictException("Malumotlar toldirishdagi xatolik try again")
+    if (checkDuplicate) {
+      throw new ConflictException("Bu talaba ushbu guruhga allaqachon qo'shilgan")
     }
 
     const checkCount = await this.prisma.studentGroup.count({
       where: {
-        group_id: payload.group_id
+        group_id: payload.group_id,
+        status: Status.active
       }
     })
 
@@ -53,9 +56,27 @@ export class StudentGroupService {
 
 
 
+
+
   async findAll() {
     return await this.prisma.studentGroup.findMany({
       where: { status: Status.active }
+    });
+  }
+
+  async findByGroup(groupId: number) {
+    return await this.prisma.studentGroup.findMany({
+      where: { group_id: groupId, status: Status.active },
+      include: {
+        users: {
+          select: {
+            id: true,
+            first_name: true,
+            last_name: true,
+            photo: true,
+          }
+        },
+      }
     });
   }
 

@@ -1,145 +1,278 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import axios from "axios"
+import { useNavigate, useLocation } from "react-router-dom";
+import axios from "axios";
+import { useNotify } from "./NotificationContext";
+import { isAuthenticated, setToken } from "../utils/auth";
+import {
+  Box,
+  Typography,
+  TextField,
+  Button,
+  IconButton,
+  InputAdornment,
+} from "@mui/material";
+import Visibility from "@mui/icons-material/Visibility";
+import VisibilityOff from "@mui/icons-material/VisibilityOff";
 
 export default function Login() {
-    const [showPassword, setShowPassword] = useState(false);
-    const [login, setLogin] = useState("");
-    const [password, setPassword] = useState("");
-    const navigate = useNavigate();
+  const [showPassword, setShowPassword] = useState(false);
+  const [login, setLogin] = useState("");
+  const [password, setPassword] = useState("");
+  const navigate = useNavigate();
+  const location = useLocation();
+  const notify = useNotify();
 
-    const API = "http://localhost:3000/login";
+  const API = "http://localhost:3000/login";
 
-    const loginPost = async (e) => {
-        e.preventDefault();
+  useEffect(() => {
+    if (isAuthenticated()) {
+      const from = location.state?.from?.pathname || "/dashboard";
+      navigate(from, { replace: true });
+    }
+  }, [navigate, location]);
 
-        try {
-            const res = await axios.post(API, {
-                email: login,
-                password: password,
-            });
+  const loginPost = async (e) => {
+    e.preventDefault();
 
-            localStorage.setItem("token", res.data.token);
+    try {
+      const res = await axios.post(API, {
+        email: login,
+        password: password,
+      });
 
-            navigate("/dashboard");
+      setToken(res.data.token);
+      notify("Muvaffaqiyatli kirdingiz!", "success");
+      const from = location.state?.from?.pathname || "/dashboard";
+      navigate(from, { replace: true });
+    } catch (error) {
+      const msg = error.response?.data?.message || "Login yoki parol xato!";
+      notify(msg, "error");
+    }
+  };
 
-        } catch (error) {
-            console.log(error);
-        }
-    };
+  // Inputlar uchun umumiy stil
+  const inputStyles = {
+    "& .MuiOutlinedInput-root": {
+      borderRadius: "12px",
+      bgcolor: "#F8FAFC", // Tailwind bg-slate-50
+      height: "48px",
+      "& fieldset": { borderColor: "#E2E8F0" }, // border-slate-200
+      "&:hover fieldset": { borderColor: "#CBD5E1" },
+      "&.Mui-focused fieldset": { 
+        borderColor: "#6366F1", // indigo-500
+        borderWidth: "2px"
+      },
+    },
+    "& .MuiInputBase-input": {
+      fontSize: "14px",
+      fontWeight: 600,
+    }
+  };
 
+  return (
+    <Box sx={{ display: "flex", minHeight: "100vh", width: "100%", bgcolor: "#F8FAFC", fontFamily: "sans-serif" }}>
+      
+      {/* ───────────── LEFT PANEL (Faqat katta ekranlarda ko'rinadi) ───────────── */}
+      <Box
+        sx={{
+          display: { xs: "none", lg: "flex" },
+          width: "55%",
+          alignItems: "center",
+          justifyContent: "center",
+          position: "relative",
+          overflow: "hidden",
+          background: "linear-gradient(135deg, #1e1b4b 0%, #312e81 100%)",
+        }}
+      >
+        {/* Decorative circles */}
+        <Box
+          sx={{
+            position: "absolute",
+            top: "-10%",
+            left: "-10%",
+            width: "40%",
+            height: "40%",
+            borderRadius: "50%",
+            bgcolor: "rgba(255, 255, 255, 0.05)",
+            filter: "blur(64px)",
+          }}
+        />
+        <Box
+          sx={{
+            position: "absolute",
+            bottom: "-10%",
+            right: "-10%",
+            width: "40%",
+            height: "40%",
+            borderRadius: "50%",
+            bgcolor: "rgba(168, 85, 247, 0.1)", // purple-500/10
+            filter: "blur(64px)",
+          }}
+        />
 
-    return (
-        <div className="flex min-h-screen w-full">
-            {/* ───────────── LEFT PANEL ───────────── */}
-            <div
-                className="hidden md:flex w-1/2 items-center justify-center relative overflow-hidden"
-                style={{ backgroundColor: "#1a2e6e" }}
+        <Box sx={{ position: "relative", zIndex: 10, display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center" }}>
+          <img
+            src="/study.svg"
+            alt="Student studying"
+            style={{
+              width: "100%",
+              objectFit: "contain",
+              filter: "drop-shadow(0 25px 25px rgba(0,0,0,0.25))",
+              marginBottom: "32px",
+              transition: "transform 700ms",
+            }}
+            onMouseOver={(e) => (e.currentTarget.style.transform = "scale(1.05)")}
+            onMouseOut={(e) => (e.currentTarget.style.transform = "scale(1)")}
+          />
+        </Box>
+      </Box>
+
+      {/* ───────────── RIGHT PANEL ───────────── */}
+      <Box
+        sx={{
+          display: "flex",
+          flexDirection: "column",
+          width: { xs: "100%", lg: "45%" },
+          bgcolor: "white",
+          alignItems: "center",
+          justifyContent: "center",
+          position: "relative",
+          boxShadow: "-20px 0 40px rgba(0,0,0,0.02)",
+        }}
+      >
+        <Box sx={{ width: "100%", maxWidth: "448px", px: 5 }}>
+          
+          <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", mb: 5 }}>
+            <Box
+              sx={{
+                width: 96,
+                height: 96,
+                borderRadius: "16px",
+                bgcolor: "#F8FAFC",
+                p: 2,
+                border: "1px solid #F1F5F9",
+                boxShadow: "0 1px 2px 0 rgba(0, 0, 0, 0.05)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                mb: 3,
+              }}
             >
-                {/* subtle top-left decorative rectangle */}
-                <div
-                    className="absolute top-8 left-8 w-32 h-40 rounded-md opacity-20 border-2 border-white"
-                />
-                {/* study illustration */}
-                <img
-                    src="/study.svg"
-                    alt="Student studying"
-                    className="w-[85%] max-w-lg object-contain drop-shadow-2xl"
-                />
-            </div>
+              <img
+                src="/Najot_ta'lim_Logo.jpg"
+                alt="Najot ta'lim Logo"
+                style={{ width: "100%", height: "100%", objectFit: "contain", borderRadius: "8px" }}
+              />
+            </Box>
+            <Typography sx={{ fontSize: "24px", fontWeight: 800, color: "#0F172A", letterSpacing: "-0.025em", mb: 1 }}>
+              Xush kelibsiz!
+            </Typography>
+            <Typography sx={{ color: "#64748B", fontWeight: 500 }}>
+              Tizimga kirish uchun ma'lumotlaringizni kiriting
+            </Typography>
+          </Box>
 
-            {/* ───────────── RIGHT PANEL ───────────── */}
-            <div className="flex flex-col w-full md:w-1/2 bg-white">
-                {/* Center content vertically */}
-                <div className="flex flex-1 flex-col items-center justify-center px-8 py-12 gap-[20px]">
+          <form onSubmit={loginPost} style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+            
+            {/* Email kiritish */}
+            <Box>
+              <Typography sx={{ fontSize: "14px", fontWeight: 700, color: "#334155", mb: 1, ml: 0.5 }}>
+                Email manzilingiz
+              </Typography>
+              <TextField
+                fullWidth
+                type="email"
+                placeholder="example@mail.com"
+                value={login}
+                onChange={(e) => setLogin(e.target.value)}
+                required
+                sx={inputStyles}
+              />
+            </Box>
 
-                    <p className="text-center text-[10px] font-semibold tracking-widest text-gray-600 uppercase mb-3 leading-4">
-                        Najot ta'lim
-                    </p>
+            {/* Parol kiritish */}
+            <Box>
+              <Typography sx={{ fontSize: "14px", fontWeight: 700, color: "#334155", mb: 1, ml: 0.5 }}>
+                Maxfiy parol
+              </Typography>
+              <TextField
+                fullWidth
+                type={showPassword ? "text" : "password"}
+                placeholder="••••••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                sx={inputStyles}
+                InputProps={{
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <IconButton
+                        onClick={() => setShowPassword(!showPassword)}
+                        edge="end"
+                        sx={{ color: "#94A3B8", "&:hover": { color: "#4F46E5" } }}
+                      >
+                        {showPassword ? <VisibilityOff /> : <Visibility />}
+                      </IconButton>
+                    </InputAdornment>
+                  ),
+                }}
+              />
+            </Box>
 
-                    <div className="w-20 h-20 rounded-full border-2 border-gray-300 flex items-center justify-center mb-5 overflow-hidden shadow-sm">
-                        <img
-                            src="/Najot_ta'lim_Logo.jpg"
-                            alt="Najot ta'lim Logo"
-                            className="w-full h-full object-cover"
-                        />
-                    </div>
+            {/* Kirish tugmasi */}
+            <Button
+              type="submit"
+              fullWidth
+              sx={{
+                height: "48px",
+                bgcolor: "#4F46E5", // indigo-600
+                color: "white",
+                fontWeight: 800,
+                borderRadius: "12px",
+                textTransform: "none",
+                fontSize: "16px",
+                boxShadow: "0 10px 15px -3px rgba(199, 210, 254, 0.5)", // shadow-lg shadow-indigo-200
+                mt: 2,
+                "&:hover": { bgcolor: "#4338CA" }, // indigo-700
+                "&:active": { transform: "scale(0.98)" },
+                transition: "all 200ms",
+              }}
+            >
+              Kirish
+            </Button>
+          </form>
 
-                    <h1 className="text-base font-bold tracking-widest text-gray-800 uppercase mb-[20px] text-center pb-[20px]">
-                        Learning Management System
-                    </h1>
+          {/* Parolni unutdingizmi? */}
+          <Box sx={{ textAlign: "center", mt: 3 }}>
+            <Typography
+              onClick={() => navigate("/forgot-password")}
+              sx={{
+                fontSize: "14px",
+                fontWeight: 600,
+                color: "#4F46E5",
+                cursor: "pointer",
+                transition: "color 200ms",
+                "&:hover": { color: "#4338CA" },
+              }}
+            >
+              Parolni unutdingizmi?
+            </Typography>
+          </Box>
+        </Box>
 
-                    {/* Form */}
-                    <form onSubmit={loginPost} className="flex flex-col w-full max-w-xs space-y-5 gap-5">
-
-                        <div className="flex flex-col gap-[10px]">
-                            <label
-                                htmlFor="email-input"
-                                className="block text-sm font-medium text-gray-700"
-                            >
-                                Email
-                            </label>
-                            <input
-                                id="email-input"
-                                type="text"
-                                placeholder="Emailni kiriting"
-                                value={login}
-                                onChange={(e) => setLogin(e.target.value)}
-                                className="w-full h-10 px-4 text-sm border border-gray-300 rounded focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600 transition"
-                            />
-                        </div>
-
-                        <div className="flex flex-col gap-[10px]">
-                            <label
-                                htmlFor="password-input"
-                                className="block text-sm font-medium text-gray-700 mb-1"
-                            >
-                                Parol
-                            </label>
-                            <div className="relative">
-                                <input
-                                    id="password-input"
-                                    type={showPassword ? "text" : "password"}
-                                    placeholder="Parolni kiriting"
-                                    value={password}
-                                    onChange={(e) => setPassword(e.target.value)}
-                                    className="w-full h-[40px] px-4 pr-10 text-sm border border-gray-300 rounded focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600 transition"
-                                />
-                                <button
-                                    type="button"
-                                    onClick={() => setShowPassword(!showPassword)}
-                                    className="absolute inset-y-0 right-2 flex items-center text-gray-500 hover:text-gray-700 transition"
-                                    aria-label={showPassword ? "Parolni yashirish" : "Parolni ko'rsatish"}
-                                >
-                                    {showPassword ? (
-                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                            <path strokeLinecap="round" strokeLinejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-5 0-9-4-9-7a9.77 9.77 0 012.34-4.34M6.1 6.1A9.77 9.77 0 0112 5c5 0 9 4 9 7a9.77 9.77 0 01-2.34 4.34M3 3l18 18" />
-                                        </svg>
-                                    ) : (
-                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                            <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                            <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                                        </svg>
-                                    )}
-                                </button>
-                            </div>
-                        </div>
-
-                        <button
-                            type="submit"
-                            className="w-full h-[40px] cursor-pointer py-2 text-sm font-semibold text-white rounded transition-all duration-200 hover:opacity-90 active:scale-95"
-                            style={{ backgroundColor: "#1a56db" }}
-                        >
-                            Kirish
-                        </button>
-                    </form>
-                </div>
-
-                {/* Footer */}
-                <footer className="text-center text-[10px] text-gray-400 py-4 border-t border-gray-100">
-                    Copyright © 2026 of Najot ta'lim
-                </footer>
-            </div>
-        </div>
-    );
+        {/* Footer */}
+        <Typography
+          sx={{
+            position: "absolute",
+            bottom: "32px",
+            color: "#94A3B8",
+            fontSize: "12px",
+            fontWeight: 600,
+          }}
+        >
+          Copyright © 2026 Najot Ta'lim LMS
+        </Typography>
+      </Box>
+    </Box>
+  );
 }

@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseInterceptors, UploadedFile, UseGuards, Query } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseInterceptors, UploadedFile, UseGuards, Query, Res } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
@@ -10,6 +10,7 @@ import { RolesGuard } from 'src/common/guards/role.guard';
 import { Roles } from 'src/common/decorators/role.decorator';
 import { Role } from '@prisma/client';
 import { filterAdminDto } from './dto/filter-user.dto';
+import type { Response } from 'express';
 
 @ApiBearerAuth()
 @Controller('user')
@@ -132,5 +133,17 @@ export class UsersController {
     return {
       message: "Foydalanuvchi muvaffaqiyatli o'chirildi"
     }
+  }
+
+  @ApiOperation({ summary: "Rasmni ko'rish" })
+  @Get('image/:filename')
+  serveImage(@Param('filename') filename: string, @Res() res: Response) {
+    return res.sendFile(filename, { root: 'src/uploads' });
+  }
+
+  @ApiOperation({ summary: "Videoni ko'rish" })
+  @Get('video/:filename')
+  serveVideo(@Param('filename') filename: string, @Res() res: Response) {
+    return res.sendFile(filename, { root: 'src/uploads' });
   }
 }

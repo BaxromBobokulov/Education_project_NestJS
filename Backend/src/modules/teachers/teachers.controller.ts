@@ -52,7 +52,8 @@ export class TeachersController {
     @UploadedFile() file: Express.Multer.File) {
     const createdTeacher = await this.teachersService.create(body, file.filename);
     return {
-      message: "Teacher created successfully"
+      message: "Teacher created successfully",
+      id: createdTeacher.id
     }
   }
 
@@ -108,13 +109,14 @@ export class TeachersController {
     })
   }))
 
-  update(@Param('id') id: string,
+  async update(@Param('id') id: string,
     @Body() payload: UpdateTeacherDto,
     @UploadedFile() file?: Express.Multer.File) {
     const photo = file?.filename
-    const updatedTeacher = this.teachersService.update(+id, payload, photo);
+    const updatedTeacher = await this.teachersService.update(+id, payload, photo);
     return {
-      message: "Teacher updated successfully"
+      message: "Teacher updated successfully",
+      id: updatedTeacher.id
     }
   }
 
@@ -139,7 +141,7 @@ export class TeachersController {
   @UseGuards(AuthGuard, RolesGuard)
   @Roles(Role.SUPERADMIN, Role.ADMIN, Role.TEACHER)
   @ApiBearerAuth()
-  @Get(':id')
+  @Get(':id/groups')
   findGrups(@Param('id') id: string) {
     return this.teachersService.findGroup(+id);
   }

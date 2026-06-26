@@ -56,6 +56,16 @@ export class StudentGroupController {
   }
 
   @ApiOperation({
+    summary: `${Role.SUPERADMIN}, ${Role.ADMIN}, ${Role.TEACHER}, ${Role.ASSISTANT}`
+  })
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles(Role.SUPERADMIN, Role.ADMIN, Role.TEACHER, Role.ASSISTANT)
+  @Get('group/:id')
+  findByGroup(@Param('id') id: string) {
+    return this.studentGroupService.findByGroup(+id);
+  }
+
+  @ApiOperation({
     summary: `${Role.SUPERADMIN}, ${Role.ADMIN}`
   })
   @UseGuards(AuthGuard, RolesGuard)

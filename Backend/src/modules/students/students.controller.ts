@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseInterceptors, UploadedFile, UseGuards, Query} from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseInterceptors, UploadedFile, UseGuards, Query } from '@nestjs/common';
 import { StudentsService } from './students.service';
 import { CreateStudentDto } from './dto/create-student.dto';
 import { UpdateStudentDto } from './dto/update-student.dto';
@@ -66,13 +66,27 @@ export class StudentsController {
   @ApiBearerAuth()
   @Get("all")
   findAll(
-    @Query() search : filterDto
+    @Query() search: filterDto
   ) {
     return this.studentsService.findAll(search);
   }
 
   @ApiOperation({
-    summary: `${Role.SUPERADMIN} , ${Role.ADMIN}` 
+    summary: `${Role.SUPERADMIN}, ${Role.ADMIN}, ${Role.TEACHER}, ${Role.ASSISTANT}, ${Role.STUDENT}`
+  })
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles(Role.SUPERADMIN, Role.ADMIN, Role.TEACHER, Role.ASSISTANT, Role.STUDENT)
+  @ApiBearerAuth()
+  @Get("student-groups/:id")
+  getgroupsbyStudentId(
+    @Param('id') id: string,
+  ) {
+    return this.studentsService.getgroupsbyStudentId(+id);
+  }
+
+
+  @ApiOperation({
+    summary: `${Role.SUPERADMIN} , ${Role.ADMIN}`
   })
   @UseGuards(AuthGuard, RolesGuard)
   @Roles(Role.SUPERADMIN, Role.ADMIN)
@@ -111,11 +125,11 @@ export class StudentsController {
     })
   }))
 
-  update(@Param('id') id: string,
+  async update(@Param('id') id: string,
     @Body() payload: UpdateStudentDto,
     @UploadedFile() file?: Express.Multer.File) {
     const photo = file?.filename
-    const updatedStudent = this.studentsService.update(+id, payload, photo);
+    const updatedStudent = await this.studentsService.update(+id, payload, photo);
     return {
       message: "Student updated successfully"
     }

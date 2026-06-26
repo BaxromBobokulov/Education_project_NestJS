@@ -53,7 +53,6 @@ export class RoomsService {
 
   async remove(id: number) {
     this.findOne(id)
-    console.log(id);
     const removedRoom = await this.prisma.room.delete({
       where: {id}
     })

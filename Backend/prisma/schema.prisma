@@ -6,6 +6,7 @@ datasource db {
   provider = "postgresql"
 }
 
+
 model User {
   id                     Int                     @id @default(autoincrement())
   first_name             String
@@ -20,25 +21,27 @@ model User {
   created_at             DateTime                @default(now())
   update_at              DateTime                @default(now())
   attendances            Attendance[]
-  groups                 Group[]
   homework               Homework[]
   homeworkAnswerStudents HomeworkAnswerStudent[]
-  homeworkResults        HomeworkResult[]
+  homeworkResults        HomeworkResult[]        @relation("GradedBy")
+  checkedHomeworks       HomeworkResult[]        @relation("CheckedBy")
   lessons                Lessons[]
+  exams                  Exam[]
   studentGroups          StudentGroup[]
+  teacherGroups          TeacherGroup[]
 }
 
 model Course {
-  id             Int         @id @default(autoincrement())
-  name           String      @unique
+  id             Int      @id @default(autoincrement())
+  name           String   @unique
   description    String?
   price          Int
   duration_month Int
   duration_hours Int
   color          String
-  status         Status      @default(active)
-  created_at     DateTime    @default(now())
-  update_at      DateTime    @default(now())
+  status         Status   @default(active)
+  created_at     DateTime @default(now())
+  update_at      DateTime @default(now())
   groups         Group[]
 }
 
@@ -64,13 +67,13 @@ model Group {
   status        GroupStatus    @default(active)
   created_at    DateTime       @default(now())
   update_at     DateTime       @default(now())
-  user_id       Int
   courses       Course         @relation(fields: [course_id], references: [id])
   rooms         Room           @relation(fields: [room_id], references: [id])
-  users         User           @relation(fields: [user_id], references: [id])
   homework      Homework[]
   lessons       Lessons[]
+  exams         Exam[]
   studentGroups StudentGroup[]
+  teacherGroups TeacherGroup[]
 }
 
 model StudentGroup {
@@ -92,11 +95,13 @@ model Lessons {
   user_id     Int
   topic       String
   description String?
+  video       String?
   status      Status       @default(active)
   created_at  DateTime     @default(now())
   update_at   DateTime     @default(now())
   attendances Attendance[]
-  homework    Homework[]
+  homework    Homework?
+  exams       Exam[]
   groups      Group        @relation(fields: [group_id], references: [id])
   users       User         @relation(fields: [user_id], references: [id])
 }
@@ -116,7 +121,7 @@ model Attendance {
 model Homework {
   id                     Int                     @id @default(autoincrement())
   user_id                Int
-  lesson_id              Int
+  lesson_id              Int                     @unique
   group_id               Int
   title                  String
   file                   String?
@@ -129,15 +134,16 @@ model Homework {
 }
 
 model HomeworkAnswerStudent {
-  id              Int              @id @default(autoincrement())
+  id              Int             @id @default(autoincrement())
   user_id         Int
   homework_id     Int
   title           String
   file            String?
-  created_at      DateTime         @default(now())
-  update_at       DateTime         @default(now())
-  homework        Homework         @relation(fields: [homework_id], references: [id])
-  user            User             @relation(fields: [user_id], references: [id])
+  status          HomeworkStatus  @default(PENDING)
+  created_at      DateTime        @default(now())
+  update_at       DateTime        @default(now())
+  homework        Homework        @relation(fields: [homework_id], references: [id])
+  user            User            @relation(fields: [user_id], references: [id])
   homeworkResults HomeworkResult[]
 }
 
@@ -145,12 +151,42 @@ model HomeworkResult {
   id                    Int                   @id @default(autoincrement())
   homework_answer_id    Int
   user_id               Int
+  checked_by            Int
   title                 String
-  status                Boolean
+  score                 Int                   @default(0)
+  status                HomeworkStatus        @default(PENDING)
   created_at            DateTime              @default(now())
   update_at             DateTime              @default(now())
   homeworkAnswerStudent HomeworkAnswerStudent @relation(fields: [homework_answer_id], references: [id])
-  users                 User                  @relation(fields: [user_id], references: [id])
+  gradedUser            User                  @relation("GradedBy", fields: [user_id], references: [id])
+  checkedByUser         User                  @relation("CheckedBy", fields: [checked_by], references: [id])
+}
+
+model Exam {
+  id          Int      @id @default(autoincrement())
+  user_id     Int
+  lesson_id   Int
+  group_id    Int
+  title       String
+  file        String?
+  created_at  DateTime @default(now())
+  update_at   DateTime @default(now())
+  groups      Group    @relation(fields: [group_id], references: [id])
+  lessons     Lessons  @relation(fields: [lesson_id], references: [id])
+  users       User     @relation(fields: [user_id], references: [id])
+}
+
+model TeacherGroup {
+  id         Int      @id @default(autoincrement())
+  group_id   Int
+  status     Status   @default(active)
+  created_at DateTime @default(now())
+  update_at  DateTime @default(now())
+  user_id    Int
+  groups     Group    @relation(fields: [group_id], references: [id])
+  users      User     @relation(fields: [user_id], references: [id])
+
+  @@unique([user_id, group_id])
 }
 
 enum CourseLevel {
@@ -194,4 +230,11 @@ enum GroupStatus {
   planned
   active
   completed
+}
+
+enum HomeworkStatus {
+  PENDING
+  CHECKED
+  INCOMPLETE
+  REJECTED
 }

@@ -5,10 +5,13 @@ import * as bcrypt from "bcrypt"
 import { PrismaService } from 'src/core/database/prisma.service';
 import { Role, Status } from '@prisma/client';
 import { filterTeacherDto } from './dto/filter-teacher.dto';
+import { EskizService } from 'src/common/service/sms.service';
 
 @Injectable()
 export class TeachersService {
-  constructor(private prisma: PrismaService) { }
+  constructor(private prisma: PrismaService,
+    private smsService: EskizService
+  ) { }
 
   async create(payload: CreateTeacherDto, filename: string) {
     const hash = await bcrypt.hash(payload.password, 10)
@@ -33,27 +36,39 @@ export class TeachersService {
       throw new ConflictException("Bu telefon raqam alloqachon mavjud")
     }
 
+    let groupIds: number[] = [];
+    if (payload.groups) {
+      try {
+        groupIds = JSON.parse(payload.groups);
+      } catch (e) { }
+    }
+
+    const { groups, ...restPayload } = payload;
+
+
     const CreatedTeacher = await this.prisma.user.create({
       data: {
-        first_name: payload.first_name,
-        last_name: payload.last_name,
+        ...restPayload,
         password: hash,
         role: Role.TEACHER,
-        phone: payload.phone,
-        email: payload.email,
-        address: payload.address,
-        photo: filename
-
+        photo: filename,
+        ...(groupIds.length > 0 ? {
+          teacherGroups: {
+            create: groupIds.map(groupId => ({ group_id: groupId }))
+          }
+        } : {})
       }
     })
 
+    await this.smsService.sendSms(payload.phone, `NajotEdu kabinetingiz https://najotedu.softwareengineer.uz/login.\n Login: ${payload.phone} Parol: ${payload.password}}`)
+    return CreatedTeacher;
   }
 
 
   async findAll(search: filterTeacherDto) {
     let where = {
       status: Status.active,
-      role: Role.TEACHER
+      role: Role.TEACHER,
     }
 
     if (search?.first_name) {
@@ -71,9 +86,32 @@ export class TeachersService {
     if (search?.email) {
       where["email"] = search.email
     }
+
     const teachers = await this.prisma.user.findMany({
-      where
+      where,
+      select: {
+        id: true,
+        first_name: true,
+        last_name: true,
+        phone: true,
+        email: true,
+        address: true,
+        photo: true,
+        created_at: true,
+        teacherGroups: {
+          select: {
+            group_id: true,
+            groups: {
+              select: {
+                id: true,
+                name: true
+              }
+            }
+          }
+        }
+      }
     })
+
     return teachers
   }
 
@@ -86,11 +124,28 @@ export class TeachersService {
   }
 
   async findOne(id: number) {
-    const teachers = await this.prisma.user.findFirst({
-      where: { id, status: Status.active }
-    })
-    if (!teachers) throw new NotFoundException("Teacher mavjud emas yoki inactive")
-    return teachers
+    const teacher = await this.prisma.user.findFirst({
+      where: { id, status: Status.active },
+      include: {
+        teacherGroups: {
+          where: { status: Status.active },
+          include: {
+            groups: {
+              include: {
+                courses: true,
+                rooms: true
+              }
+            }
+          }
+        }
+      }
+    });
+    if (!teacher) throw new NotFoundException("Teacher mavjud emas yoki inactive");
+    return {
+      ...teacher,
+      salary: "4,500,000 UZS",
+      gender: "Erkak"
+    };
   }
 
   async update(id: number, payload: UpdateTeacherDto, photo?: string) {
@@ -99,11 +154,26 @@ export class TeachersService {
       payload.password = await bcrypt.hash(payload.password, 10)
     }
 
+    let groupIds: number[] | undefined = undefined;
+    if (payload.groups) {
+      try {
+        groupIds = JSON.parse(payload.groups);
+      } catch (e) { }
+    }
+
+    const { groups, ...restPayload } = payload;
+
     return this.prisma.user.update({
       where: { id },
       data: {
-        ...payload,
+        ...restPayload,
         ...(photo ? { photo: photo } : {}),
+        ...(groupIds ? {
+          teacherGroups: {
+            deleteMany: {},
+            create: groupIds.map(groupId => ({ group_id: groupId }))
+          }
+        } : {})
       }
     })
   }
@@ -119,10 +189,8 @@ export class TeachersService {
 
   async findGroup(id: number) {
     this.findOne(id)
-    return this.prisma.group.findMany({
+    return this.prisma.teacherGroup.findMany({
       where: { user_id: id }
     })
   }
 }
-
-
